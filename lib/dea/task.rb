@@ -61,9 +61,12 @@ module Dea
           klass  = ::EM::Warden::Client::Connection
 
           begin
-            connection = ::EM.connect_unix_domain(socket, klass)
+            # ironfoundry TODO
+            # connection = ::EM.connect_unix_domain(socket, klass)
+            connection = ::EM.connect('localhost', 4444, klass)
           rescue => error
-            p.fail(WardenError.new("Cannot connect to warden on #{socket}: #{error.message}"))
+            # ironfoundry TODO p.fail(WardenError.new("Cannot connect to warden on #{socket}: #{error.message}"))
+            p.fail(WardenError.new("Cannot connect to warden on localhost:4444: #{error.message}"))
           end
 
           if connection

@@ -49,6 +49,7 @@ module Buildpacks
     end
 
     def cache_dir
+      # ironfoundry TODO /tmp
       @cache_dir || "/tmp/cache"
     end
 
@@ -93,6 +94,8 @@ module Buildpacks
     end
 
     def generate_startup_script(env_vars = {})
+      # ironfoundry TODO override for powershell / asp.net
+      # idea: just pass config data and env as startup?
       after_env_before_script = block_given? ? yield : "\n"
       template = <<-SCRIPT
 #!/bin/bash
@@ -146,6 +149,7 @@ echo "$STARTED" >> #{pidfile_dir}/run.pid
     end
 
     def copy_source_files(dest=nil)
+      # ironfoundry TODO switch to ruby versions instead of system cp
       system "cp -a #{File.join(source_directory, ".")} #{dest || app_dir}"
       FileUtils.chmod_R(0744, app_dir)
     end

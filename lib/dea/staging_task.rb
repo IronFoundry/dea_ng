@@ -13,6 +13,7 @@ module Dea
     DROPLET_FILE = "droplet.tgz"
     STAGING_LOG = "staging_task.log"
 
+    # ironfoundry TODO
     WARDEN_UNSTAGED_DIR = "/tmp/unstaged"
     WARDEN_STAGED_DIR = "/tmp/staged"
     WARDEN_STAGED_DROPLET = "/tmp/#{DROPLET_FILE}"
@@ -148,6 +149,7 @@ module Dea
 
     def promise_prepare_staging_log
       Promise.new do |p|
+        # ironfoundry TODO
         script = "mkdir -p #{workspace.warden_staged_dir}/logs && touch #{workspace.warden_staging_log}"
         logger.info("Preparing staging log: #{script}")
         promise_warden_run(:app, script).resolve
@@ -161,12 +163,14 @@ module Dea
         # See: https://github.com/heroku/heroku-buildpack-python/blob/master/bin/compile#L46
         # TODO possibly remove this if pull request is accepted
         script = "mkdir -p /app && touch /app/support_heroku_buildpacks && chown -R vcap:vcap /app"
+        # ironfoundry TODO
         promise_warden_run(:app, script, true).resolve
         p.deliver
       end
     end
 
     def promise_stage
+      # ironfoundry TODO
       Promise.new do |p|
         script = [
           staging_environment,
@@ -432,6 +436,8 @@ module Dea
     end
 
     def run_plugin_path
+      # ironfoundry TODO
+      # dea_ng/buildpacks/bin/run
       File.join(buildpack_dir, "bin/run")
     end
 

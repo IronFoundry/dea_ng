@@ -28,6 +28,7 @@ module Buildpacks
     end
 
     def clone_buildpack(buildpack_url)
+      # ironfoundry TODO why /tmp ???
       buildpack_path = "/tmp/buildpacks/#{File.basename(buildpack_url)}"
       ok = system("git clone #{buildpack_url} #{buildpack_path}")
       raise "Failed to git clone buildpack" unless ok
@@ -81,6 +82,7 @@ module Buildpacks
     end
 
     def startup_script
+      # ironfoundry TODO
       generate_startup_script(environment_variables) do
         script_content = <<-BASH
 unset GEM_PATH

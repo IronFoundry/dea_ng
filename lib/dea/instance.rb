@@ -412,6 +412,7 @@ module Dea
     end
 
     def promise_setup_environment
+      # ironfoundry TODO
       Promise.new do |p|
         script = "cd / && mkdir -p home/vcap/app && chown vcap:vcap home/vcap/app && ln -s home/vcap/app /app"
         promise_warden_run(:app, script, true).resolve
@@ -421,6 +422,7 @@ module Dea
     end
 
     def promise_extract_droplet
+      # ironfoundry TODO
       Promise.new do |p|
         script = "cd /home/vcap/ && tar zxf #{droplet.droplet_path}"
 
@@ -431,6 +433,7 @@ module Dea
     end
 
     def promise_start
+      # ironfoundry TODO powershell?
       Promise.new do |p|
         script = []
 
@@ -480,6 +483,7 @@ module Dea
     end
 
     def promise_exec_hook_script(key)
+      # ironfoundry TODO powershell?
       Promise.new do |p|
         if bootstrap.config['hooks'] && bootstrap.config['hooks'][key]
           script_path = bootstrap.config['hooks'][key]
@@ -502,6 +506,7 @@ module Dea
     end
 
     def start(&callback)
+      # ironfoundry TODO check each step for compatibility
       p = Promise.new do
         logger.info("Starting instance")
 
@@ -599,6 +604,7 @@ module Dea
     end
 
     def promise_copy_out
+      # ironfoundry TODO
       Promise.new do |p|
         new_instance_path = File.join(config.crashes_path, instance_id)
         new_instance_path = File.expand_path(new_instance_path)
@@ -741,6 +747,7 @@ module Dea
       end
     end
 
+    # ironfoundry TODO what's a link?
     def promise_link
       Promise.new do |p|
         request = ::Warden::Protocol::LinkRequest.new
@@ -869,12 +876,14 @@ module Dea
     end
 
     def container_relative_path(root, *parts)
+      # ironfoundry TODO home/vcap
       # This can be removed once warden's wsh branch is merged to master
       if File.directory?(File.join(root, "rootfs"))
         return File.join(root, "rootfs", "home", "vcap", *parts)
       end
 
       # New path
+      # ironfoundry TODO home/vcap
       File.join(root, "tmp", "rootfs", "home", "vcap", *parts)
     end
 

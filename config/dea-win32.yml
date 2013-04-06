@@ -1,0 +1,61 @@
+# See src/lib/dea/config.rb for optional config values.
+
+# Base directory for dea, application directories, dea temp files, etc. are all relative to this.
+base_dir: C:/IronFoundry/dea_ng
+
+logging:
+  level: debug
+
+local_route: localhost
+
+resources:
+  memory_mb: 2048
+  memory_overcommit_factor: 2
+  disk_mb: 2048
+  disk_overcommit_factor: 2
+
+# The this flag determines whether or not this DEA should only host
+# production apps. (default: false)
+only_production_apps: false
+
+nats_uri: nats://nats:32562576b4770c0b@lukebakken.cloudfoundry.me:4222/
+
+pid_filename: C:/IronFoundry/run/dea_ng.pid
+
+warden_socket: C:/IronFoundry/warden.sock # ironfoundry TODO
+
+evacuation_delay_secs: 5
+
+index: 0
+
+staging:
+  enabled: true
+  platform_config:
+    cache: C:/IronFoundry/package_cache/ruby
+  environment:
+    PATH: C:/Rubies/Ruby193-dea_ng/bin
+    BUILDPACK_CACHE: C:/IronFoundry/buildpack_cache
+  memory_limit_mb: 1024
+  disk_limit_mb: 2048
+  max_staging_duration: 900 # 15 minutes
+
+dea_ruby: C:/Rubies/Ruby193-dea_ng/bin/ruby.exe
+
+# For Go-based directory server
+directory_server:
+  v1_port: 4385
+  v2_port: 5678
+  file_api_port: 1234
+  streaming_timeout: 10
+  logging:
+    level: info
+
+stacks:
+  - win32
+
+# Hook scripts for droplet start/stop
+# hooks:
+#   before_start: path/to/script
+#   after_start: path/to/script
+#   before_stop: path/to/script
+#   after_stop: path/to/script
