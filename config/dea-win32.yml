@@ -4,7 +4,7 @@
 base_dir: C:/IronFoundry/dea_ng
 
 logging:
-  level: debug
+  level: all
 
 local_route: localhost
 
