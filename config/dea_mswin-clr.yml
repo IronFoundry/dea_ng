@@ -51,7 +51,7 @@ directory_server:
     level: info
 
 stacks:
-  - win32
+  - mswin-clr
 
 # Hook scripts for droplet start/stop
 # hooks:
