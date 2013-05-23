@@ -34,6 +34,6 @@ group :test do
   gem "librarian"
   gem "rspec"
   gem "rack-test"
-  gem "rcov"
+  gem "rcov", "0.9.11"
   gem "ci_reporter"
 end

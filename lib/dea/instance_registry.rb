@@ -4,6 +4,7 @@ require "steno"
 require "steno/core_ext"
 require "sys/filesystem"
 require "thread"
+require_relative "registry_enumeration"
 
 module Dea
   class InstanceRegistry
@@ -11,6 +12,7 @@ module Dea
     CRASHES_REAPER_INTERVAL_SECS = 10
 
     include Enumerable
+    include RegistryEnumeration
 
     attr_reader :config
     attr_reader :crash_lifetime_secs
@@ -65,6 +67,14 @@ module Dea
 
     def lookup_instance(instance_id)
       @instances[instance_id]
+    end
+
+    def app_id_to_count
+      app_count = {}
+      @instances_by_app_id.each do |app_id, instance_hash|
+        app_count[app_id] = instance_hash.size
+      end
+      app_count
     end
 
     def each(&block)
