@@ -18,7 +18,7 @@ resources:
 # production apps. (default: false)
 only_production_apps: false
 
-nats_uri: nats://nats:32562576b4770c0b@lukebakken.cloudfoundry.me:4222/
+nats_uri: nats://api2.vcap.me:4222/
 
 pid_filename: C:/IronFoundry/run/dea_ng.pid
 
