@@ -166,6 +166,13 @@ describe Dea::Bootstrap do
       bootstrap.setup_directory_server_v2
     end
 
+    it "sends a dea shutdown message" do
+      bootstrap.stub(:nats).and_return(nats_client_mock)
+      bootstrap.should_receive(:send_shutdown_message)
+      bootstrap.stub(:terminate)
+      bootstrap.shutdown
+    end
+
     context "when instances are registered" do
       before do
         bootstrap.instance_registry.register(Dea::Instance.new(bootstrap, {}))
@@ -212,15 +219,16 @@ describe Dea::Bootstrap do
       nats_mock = mock("nats")
       nats_mock.should_receive(:stop)
       nats_mock.should_receive(:client).and_return(nats_client_mock)
-      nats_mock.should_receive(:publish) do |subject, message|
-        subject.should == "router.unregister"
 
+      nats_mock.should_receive(:publish).with("router.unregister", anything) do |subject, message|
         message.should be_an_instance_of Hash
         message["host"].should == bootstrap.local_ip
         message["port"].should == bootstrap.config["directory_server"]["v2_port"]
         message["uris"].size.should == 1
         message["uris"][0].should match /.*\.#{bootstrap.config["domain"]}$/
       end
+
+      nats_mock.should_receive(:publish).with("dea.shutdown", anything)
 
       nats_client_mock.should_receive(:flush)
 
@@ -238,6 +246,16 @@ describe Dea::Bootstrap do
     before :each do
       bootstrap.setup_signal_handlers
       bootstrap.setup_instance_registry
+      bootstrap.stub(:send_shutdown_message)
+    end
+
+    it "sends a dea evacuation message" do
+      bootstrap.should_receive(:send_shutdown_message)
+
+      # For shutdown delay
+      EM.stub(:add_timer)
+
+      bootstrap.evacuate
     end
 
     it "should send an exited message for each instance" do
@@ -272,6 +290,24 @@ describe Dea::Bootstrap do
 
       shutdown_timestamp.should_not be_nil
       (shutdown_timestamp - start).should be_within(0.05).of(0.2)
+    end
+  end
+
+  describe "send_shutdown_message" do
+    it "publishes a dea.shutdown message on NATS" do
+      bootstrap.stub(:nats).and_return(nats_client_mock)
+
+      bootstrap.setup_instance_registry
+      bootstrap.instance_registry.register(
+        Dea::Instance.new(bootstrap, { "application_id" => "foo" }))
+
+      nats_client_mock.should_receive(:publish).with("dea.shutdown",
+        "id" => bootstrap.uuid,
+        "ip" => bootstrap.local_ip,
+        "version" => Dea::VERSION,
+        "app_id_to_count" => { "foo" => 1 })
+
+      bootstrap.send_shutdown_message
     end
   end
 
@@ -424,10 +460,14 @@ describe Dea::Bootstrap do
   describe "#evacuate" do
     before { EM.stub(:add_periodic_timer => nil, :add_timer => nil) }
 
+    before do
+      bootstrap.stub(:uuid => "unique-dea-id")
+      bootstrap.setup_nats
+      bootstrap.setup_instance_registry
+    end
+
     context "when advertising/locating was set up" do
       before do
-        bootstrap.stub(:uuid => "unique-dea-id")
-        bootstrap.setup_nats
         bootstrap.setup_resource_manager
         bootstrap.start_nats
       end
