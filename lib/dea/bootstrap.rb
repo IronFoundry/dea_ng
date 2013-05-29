@@ -83,6 +83,16 @@ module Dea
       setup_router_client
     end
 
+    def setup_varz
+      VCAP::Component.varz.synchronize do
+        VCAP::Component.varz[:stacks] = config["stacks"]
+      end
+
+      EM.add_periodic_timer(DEFAULT_HEARTBEAT_INTERVAL) do
+        periodic_varz_update
+      end
+    end
+
     def setup_logging
       logging = config["logging"]
 
@@ -291,10 +301,6 @@ module Dea
         :password => config["status"]["password"]
       )
 
-      VCAP::Component.varz.synchronize do
-        VCAP::Component.varz[:stacks] = config["stacks"]
-      end
-
       @uuid = VCAP::Component.uuid
     end
 
@@ -325,6 +331,7 @@ module Dea
       start_directory_server
       register_directory_server_v2
       directory_server_v2.start
+      setup_varz
 
       start_finish
     end
@@ -679,6 +686,16 @@ module Dea
         if matched
           yield(instance)
         end
+      end
+    end
+
+    def periodic_varz_update
+      mem_required = config.minimum_staging_memory_mb
+      disk_required = config.minimum_staging_disk_mb
+      can_stage = resource_manager.could_reserve?(mem_required, disk_required) ? 1 : 0
+
+      VCAP::Component.varz.synchronize do
+        VCAP::Component.varz[:can_stage] = can_stage
       end
     end
 
