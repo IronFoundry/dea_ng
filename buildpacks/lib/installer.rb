@@ -3,7 +3,7 @@ require "open3"
 module Buildpacks
   class Installer < Struct.new(:path, :app_dir, :cache_dir)
     def detect
-      @detect_output, status = Open3.capture2 command('detect')
+      @detect_output, status = Open3.capture2 command('detect.ps1') # TODO ironfoundry
       status == 0
     end
 
@@ -26,7 +26,7 @@ module Buildpacks
     private
 
     def command(command_name)
-      "#{path}/bin/#{command_name} #{app_dir}"
+      "powershell.exe -NoProfile -NonInteractive #{path}/bin/#{command_name} #{app_dir}" # TODO ironfoundry
     end
   end
 end
