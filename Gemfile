@@ -20,7 +20,7 @@ gem "vcap_common", :git => "https://github.com/IronFoundry/vcap-common.git", :br
 # gem "steno", :git => "https://github.com/IronFoundry/steno.git", :branch => "ironfoundry"
 gem "steno", :path => "C:/proj/cf/steno", :branch => "ironfoundry"
 
-gem 'uuidtools', '~> 2.1.2'
+gem 'uuidtools', '~> 2.1'
 gem 'nokogiri', '>= 1.4.4'
 gem "vcap_logging", "0.1.4"
 

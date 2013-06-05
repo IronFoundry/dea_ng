@@ -34,7 +34,7 @@ staging:
   platform_config:
     cache: C:/IronFoundry/package_cache/ruby
   environment:
-    PATH: C:/Rubies/Ruby193-dea_ng/bin
+    PATH: C:/Rubies/Ruby193-dea_ng/bin # TODO ensure this sets the PATH when staging is done
     BUILDPACK_CACHE: C:/IronFoundry/buildpack_cache
   memory_limit_mb: 1024
   disk_limit_mb: 2048
