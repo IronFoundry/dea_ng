@@ -225,7 +225,7 @@ describe Dea::Bootstrap do
         message["host"].should == bootstrap.local_ip
         message["port"].should == bootstrap.config["directory_server"]["v2_port"]
         message["uris"].size.should == 1
-        message["uris"][0].should match /.*\.#{bootstrap.config["domain"]}$/
+        message["uris"][0].should match(/.*\.#{bootstrap.config["domain"]}$/)
       end
 
       nats_mock.should_receive(:publish).with("dea.shutdown", anything)
@@ -376,20 +376,52 @@ describe Dea::Bootstrap do
       bootstrap.setup_resource_manager
       bootstrap.config.stub(:minimum_staging_memory_mb => 333)
       bootstrap.config.stub(:minimum_staging_disk_mb => 444)
+      bootstrap.resource_manager.stub(number_reservable: 0,
+                                      available_disk_ratio: 0,
+                                      available_memory_ratio: 0)
     end
 
-    it "is 0 when there is not enough free memory or disk space" do
-      bootstrap.resource_manager.stub(:could_reserve?).with(333, 444).and_return(false)
-      bootstrap.periodic_varz_update
+    describe "can_stage" do
+      it "is 0 when there is not enough free memory or disk space" do
+        bootstrap.resource_manager.stub(:number_reservable).and_return(0)
+        bootstrap.periodic_varz_update
 
-      VCAP::Component.varz[:can_stage].should == 0
+        VCAP::Component.varz[:can_stage].should == 0
+      end
+
+      it "is 1 when there is enough memory and disk space" do
+        bootstrap.resource_manager.stub(:number_reservable).and_return(3)
+        bootstrap.periodic_varz_update
+
+        VCAP::Component.varz[:can_stage].should == 1
+      end
     end
 
-    it "is 1 when there is enough memory and disk space" do
-      bootstrap.resource_manager.stub(:could_reserve?).with(333, 444).and_return(true)
-      bootstrap.periodic_varz_update
+    describe "reservable_stagers" do
+      it "uses the value from resource_manager#number_reservable" do
+        bootstrap.resource_manager.stub(:number_reservable).with(333, 444).and_return(456)
+        bootstrap.periodic_varz_update
 
-      VCAP::Component.varz[:can_stage].should == 1
+        VCAP::Component.varz[:reservable_stagers].should == 456
+      end
+    end
+
+    describe "available_memory_ratio" do
+      it "uses the value from resource_manager#available_memory_ratio" do
+        bootstrap.resource_manager.stub(:available_memory_ratio).and_return(0.5)
+        bootstrap.periodic_varz_update
+
+        VCAP::Component.varz[:available_memory_ratio].should == 0.5
+      end
+    end
+
+    describe "available_disk_ratio" do
+      it "uses the value from resource_manager#available_memory_ratio" do
+        bootstrap.resource_manager.stub(:available_disk_ratio).and_return(0.75)
+        bootstrap.periodic_varz_update
+
+        VCAP::Component.varz[:available_disk_ratio].should == 0.75
+      end
     end
   end
 

@@ -27,6 +27,19 @@ module Dea
       (remaining_memory > memory) && (remaining_disk > disk)
     end
 
+    def number_reservable(memory, disk)
+      return 0 if memory.zero? || disk.zero?
+      [remaining_memory / memory, remaining_disk / disk].min
+    end
+
+    def available_memory_ratio
+      1.0 - (reserved_memory.to_f / memory_capacity)
+    end
+
+    def available_disk_ratio
+      1.0 - (reserved_disk.to_f / disk_capacity)
+    end
+
     def reserved_memory
       total_mb(@instance_registry, :reserved_memory_bytes) +
       total_mb(@staging_task_registry, :reserved_memory_bytes)

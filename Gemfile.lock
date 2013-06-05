@@ -3,7 +3,7 @@ GIT
   revision: 053926886fa5f838f0d47226eb8cc6e40e03a841
   branch: ironfoundry
   specs:
-    vcap_common (2.0.10)
+    vcap_common (3.0.0)
       em-http-request (~> 1.0)
       eventmachine
       httpclient
@@ -145,8 +145,6 @@ GEM
     tilt (1.4.1)
     timecop (0.6.1)
     uuidtools (2.1.4)
-    vcap_logging (0.1.4)
-      rake
     virtus (0.5.4)
       backports (~> 2.6.1)
       descendants_tracker (~> 0.0.1)
@@ -179,7 +177,6 @@ DEPENDENCIES
   timecop
   uuidtools (~> 2.1.2)
   vcap_common!
-  vcap_logging (= 0.1.4)
   warden-client!
   warden-protocol!
   yajl-ruby

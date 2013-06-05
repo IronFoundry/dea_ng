@@ -298,7 +298,8 @@ module Dea
         :nats => self.nats.client,
         :port => config["status"]["port"],
         :user => config["status"]["user"],
-        :password => config["status"]["password"]
+        :password => config["status"]["password"],
+        :logger => logger
       )
 
       @uuid = VCAP::Component.uuid
@@ -732,10 +733,15 @@ module Dea
     def periodic_varz_update
       mem_required = config.minimum_staging_memory_mb
       disk_required = config.minimum_staging_disk_mb
-      can_stage = resource_manager.could_reserve?(mem_required, disk_required) ? 1 : 0
+      reservable_stagers = resource_manager.number_reservable(mem_required, disk_required)
+      available_memory_ratio = resource_manager.available_memory_ratio
+      available_disk_ratio = resource_manager.available_disk_ratio
 
       VCAP::Component.varz.synchronize do
-        VCAP::Component.varz[:can_stage] = can_stage
+        VCAP::Component.varz[:can_stage] = (reservable_stagers > 0) ? 1 : 0
+        VCAP::Component.varz[:reservable_stagers] = reservable_stagers
+        VCAP::Component.varz[:available_memory_ratio] = available_memory_ratio
+        VCAP::Component.varz[:available_disk_ratio] = available_disk_ratio
       end
     end
 
