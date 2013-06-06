@@ -148,14 +148,21 @@ module Dea
       File.open(workspace.platform_config_path, "w") { |f| YAML.dump(platform_config, f) }
     end
 
+    def promise_prepare_staging_log_script(warden_staged_dir, warden_staging_log)
+      script = "mkdir -p #{warden_staged_dir}/logs && touch #{warden_staging_log}"
+    end
+
     def promise_prepare_staging_log
       Promise.new do |p|
-        # ironfoundry TODO
-        script = "mkdir -p #{workspace.warden_staged_dir}/logs && touch #{workspace.warden_staging_log}"
+        script = promise_prepare_staging_log_script(workspace.warden_staged_dir, workspace.warden_staging_log)
         logger.info("Preparing staging log: #{script}")
         promise_warden_run(:app, script).resolve
         p.deliver
       end
+    end
+
+    def promise_app_dir_script
+      "mkdir -p /app && touch /app/support_heroku_buildpacks && chown -R vcap:vcap /app"
     end
 
     def promise_app_dir
@@ -163,8 +170,7 @@ module Dea
         # Some buildpacks seem to make assumption that /app is a non-empty directory
         # See: https://github.com/heroku/heroku-buildpack-python/blob/master/bin/compile#L46
         # TODO possibly remove this if pull request is accepted
-        script = "mkdir -p /app && touch /app/support_heroku_buildpacks && chown -R vcap:vcap /app"
-        # ironfoundry TODO
+        script = promise_app_dir_script
         promise_warden_run(:app, script, true).resolve
         p.deliver
       end
@@ -207,16 +213,23 @@ module Dea
       end
     end
 
+    def promise_unpack_app_script(droplet_path, warden_staging_log, warden_unstaged_dir)
+      return <<-BASH
+        package_size=`du -h #{droplet_path} | cut -f1`
+        echo "-----> Downloaded app package ($package_size)" >> #{warden_staging_log}
+        unzip -q #{droplet_path} -d #{warden_unstaged_dir}
+      BASH
+    end
+
     def promise_unpack_app
       Promise.new do |p|
         logger.info("Unpacking app to #{workspace.warden_unstaged_dir}")
-
-        promise_warden_run(:app, <<-BASH).resolve
-          package_size=`du -h #{workspace.downloaded_droplet_path} | cut -f1`
-          echo "-----> Downloaded app package ($package_size)" >> #{workspace.warden_staging_log}
-          unzip -q #{workspace.downloaded_droplet_path} -d #{workspace.warden_unstaged_dir}
-        BASH
-
+        script = promise_unpack_app_script(
+          workspace.downloaded_droplet_path, 
+          workspace.warden_staging_log,
+          workspace.warden_unstaged_dir
+        )
+        promise_warden_run(:app, script).resolve
         p.deliver
       end
     end
