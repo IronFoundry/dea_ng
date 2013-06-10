@@ -36,7 +36,8 @@ module Dea::Responders
       should_do_async_staging = message.data["async"]
 
       logger = logger_for_app(message.data["app_id"])
-      logger.info("Got #{"a" if should_do_async_staging}sync staging request with #{message.data.inspect}")
+      logger.info "staging.request.received", :synchronous => !should_do_async_staging,
+        :message => message.data
 
       # TODO ironfoundry WinStagingTask - factory?
       task = nil

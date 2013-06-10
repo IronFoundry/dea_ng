@@ -53,8 +53,15 @@ module Dea
 
       Promise.resolve(staging_promise) do |error, _|
         begin
-          logger.info("Finished staging task")
+          if error
+            logger.info "staging.task.error",
+              :exception => error, :backtrace => error.backtrace
+          else
+            logger.info "staging.task.complete"
+          end
+
           trigger_after_complete(error)
+
           raise(error) if error
         ensure
           FileUtils.rm_rf(workspace.workspace_dir)
@@ -93,7 +100,7 @@ module Dea
 
     def stop(&callback)
       stopping_promise = Promise.new do |p|
-        logger.info("Stopping staging task")
+        logger.info "staging.task.stopping"
 
         @after_complete_callback = nil # Unregister after complete callback
         promise_stop.resolve if container_handle
@@ -155,7 +162,7 @@ module Dea
     def promise_prepare_staging_log
       Promise.new do |p|
         script = promise_prepare_staging_log_script(workspace.warden_staged_dir, workspace.warden_staging_log)
-        logger.info("Preparing staging log: #{script}")
+        logger.info "staging.log.preparing", :script => script
         promise_warden_run(:app, script).resolve
         p.deliver
       end
@@ -187,7 +194,7 @@ module Dea
           ">> #{workspace.warden_staging_log} 2>&1"
         ].join(" ")
 
-        logger.info("Staging: #{script}")
+        logger.info "staging.start", :script => script
 
         Timeout.timeout(staging_timeout + staging_timeout_grace_period) do
           promise_warden_run(:app, script).resolve
@@ -200,7 +207,7 @@ module Dea
     def promise_task_log
       Promise.new do |p|
         copy_out_request(workspace.warden_staging_log, File.dirname(workspace.staging_log_path))
-        logger.info "Staging task log: #{task_log}"
+        logger.info "staging.task.log", :log => task_log
         p.deliver
       end
     end
@@ -208,7 +215,7 @@ module Dea
     def promise_staging_info
       Promise.new do |p|
         copy_out_request(workspace.warden_staging_info, File.dirname(workspace.staging_info_path))
-        logger.info "Staging task info: #{task_info}"
+        logger.info "staging.task.info", :log => task_info
         p.deliver
       end
     end
@@ -223,7 +230,7 @@ module Dea
 
     def promise_unpack_app
       Promise.new do |p|
-        logger.info("Unpacking app to #{workspace.warden_unstaged_dir}")
+        logger.info "staging.app.unpack", :destination => workspace.warden_unstaged_dir
         script = promise_unpack_app_script(
           workspace.downloaded_droplet_path, 
           workspace.warden_staging_log,
@@ -246,7 +253,7 @@ module Dea
 
     def promise_app_download
       Promise.new do |p|
-        logger.info("Downloading application from #{attributes["download_uri"]}")
+        logger.info "staging.package.download", :uri => attributes["download_uri"]
 
         Download.new(attributes["download_uri"], workspace.workspace_dir, nil, logger).download! do |error, path|
           if error
@@ -255,7 +262,7 @@ module Dea
             File.rename(path, workspace.downloaded_droplet_path)
             File.chmod(0744, workspace.downloaded_droplet_path)
 
-            logger.debug("Moved droplet to #{workspace.downloaded_droplet_path}")
+            logger.debug "staging.package.moved", :from => path, :to => workspace.downloaded_droplet_path
             p.deliver
           end
         end
@@ -278,7 +285,7 @@ module Dea
           if error
             p.fail(error)
           else
-            logger.info("Uploaded app to #{attributes["upload_uri"]}")
+            logger.info "staging.droplet.upload", :destination => attributes["upload_uri"]
             p.deliver
           end
         end
@@ -291,7 +298,7 @@ module Dea
           if error
             p.fail(error)
           else
-            logger.info("Uploaded buildpack cache to #{attributes["buildpack_cache_upload_uri"]}")
+            logger.info "staging.buildpack-cache.uploaded", :destination => attributes["buildpack_cache_upload_uri"]
             p.deliver
           end
         end
@@ -300,16 +307,18 @@ module Dea
 
     def promise_buildpack_cache_download
       Promise.new do |p|
-        logger.info("Downloading buildpack cache from #{attributes["buildpack_cache_download_uri"]}")
+        logger.info "staging.buildpack-cache.downloading", :uri => attributes["buildpack_cache_download_uri"]
 
         Download.new(attributes["buildpack_cache_download_uri"], workspace.workspace_dir, nil, logger).download! do |error, path|
           if error
-            logger.error("Failed to download buildpack cache from #{attributes["buildpack_cache_download_uri"]}")
+            logger.error "staging.buildpack-cache-download.failed",
+              :exception => error, :backtrace => error.backtrace
           else
             File.rename(path, workspace.downloaded_buildpack_cache_path)
             File.chmod(0744, workspace.downloaded_buildpack_cache_path)
 
-            logger.debug("Moved droplet to #{workspace.downloaded_buildpack_cache_path}")
+            logger.debug "staging.buildpack-cache-download.moving",
+              :from => path, :to => workspace.downloaded_buildpack_cache_path
           end
 
           p.deliver
@@ -328,7 +337,7 @@ module Dea
 
     def promise_copy_out
       Promise.new do |p|
-        logger.info("Copying out to #{workspace.staged_droplet_path}")
+        logger.info "staging.copy-out.request", :destination => workspace.staged_droplet_path
         copy_out_request(workspace.warden_staged_droplet, workspace.staged_droplet_dir)
 
         p.deliver
@@ -375,7 +384,8 @@ module Dea
     def promise_unpack_buildpack_cache
       Promise.new do |p|
         if File.exists?(workspace.downloaded_buildpack_cache_path)
-          logger.info("Unpacking buildpack cache to #{workspace.warden_cache}")
+          logger.info "staging.buildpack-cache.unpacking",
+            :destination => workspace.warden_cache
 
           promise_warden_run(:app, <<-BASH).resolve
           package_size=`du -h #{workspace.downloaded_buildpack_cache_path} | cut -f1`
@@ -391,7 +401,7 @@ module Dea
 
     def promise_copy_out_buildpack_cache
       Promise.new do |p|
-        logger.info("Copying out to #{workspace.staged_droplet_path}")
+        logger.info "staging.staged-droplet.copy", :destination => workspace.staged_droplet_path
         copy_out_request(workspace.warden_staged_buildpack_cache, workspace.staged_droplet_dir)
 
         p.deliver

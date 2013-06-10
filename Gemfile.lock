@@ -2,8 +2,9 @@ GIT
   remote: https://github.com/IronFoundry/vcap-common.git
   revision: 053926886fa5f838f0d47226eb8cc6e40e03a841
   branch: ironfoundry
+      fluent-logger
   specs:
-    vcap_common (3.0.0)
+    vcap_common (2.0.11)
       em-http-request (~> 1.0)
       eventmachine
       httpclient
@@ -103,6 +104,7 @@ GEM
     msgpack (0.4.7-x86-mingw32)
     multi_json (1.7.3)
     multi_xml (0.5.3)
+    multi_xml (0.5.4)
     multipart-post (1.2.0)
     nats (0.4.26)
       daemons (>= 1.1.5)
@@ -146,7 +148,7 @@ GEM
     timecop (0.6.1)
     uuidtools (2.1.4)
     virtus (0.5.4)
-      backports (~> 2.6.1)
+      backports (~> 3.3)
       descendants_tracker (~> 0.0.1)
     win32console (1.3.2-x86-mingw32)
     yajl-ruby (1.1.0-x86-mingw32)
@@ -171,7 +173,7 @@ DEPENDENCIES
   rcov (= 0.9.11)
   rspec
   sinatra
-  steno!
+  steno (~> 1.1.0)!
   sys-filesystem
   thin
   timecop

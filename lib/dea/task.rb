@@ -86,10 +86,11 @@ module Dea
 
     def promise_warden_call(connection_name, request)
       Promise.new do |p|
-        logger.debug2(request.inspect)
+        logger.debug2("task.warden.request", :request => request.inspect)
+
         connection = promise_warden_connection(connection_name).resolve
         connection.call(request) do |result|
-          logger.debug2(result.inspect)
+          logger.debug2("task.warden.response", :response => result.inspect)
 
           error = nil
 
@@ -99,8 +100,9 @@ module Dea
           end
 
           if error
-            logger.warn "Request failed: #{request.inspect}"
-            logger.log_exception(error)
+            logger.error "task.warden-request.failed", :request => request,
+              :exception => error,
+              :backtrace => error.backtrace
 
             p.fail(error)
           else
@@ -117,8 +119,9 @@ module Dea
         begin
           response = promise_warden_call(connection_name, request).resolve
         rescue ::EM::Warden::Client::ConnectionError => error
-          logger.warn("Request failed: #{request.inspect}, retrying")
-          logger.log_exception(error)
+          logger.error "task.warden-request.retry-failed", :request => request,
+            :exception => error,
+            :backtrace => error.backtrace
           retry
         end
 
@@ -205,7 +208,7 @@ module Dea
             :stderr      => response.stderr,
           }
 
-          logger.warn("%s exited with status %d" % [script.inspect, response.exit_status], data)
+          logger.warn "task.warden-run.exited", data
           p.fail(WardenError.new("Script exited with status %d" % response.exit_status))
         else
           p.deliver(response)
@@ -231,7 +234,9 @@ module Dea
         begin
           promise_warden_call_with_retry(:app, request).resolve
         rescue ::EM::Warden::Client::Error => error
-          logger.warn("Error destroying container: #{error.message}")
+          logger.error "task.container-destroy.failed",
+            :exception => error,
+            :backtrace => error.backtrace
         end
 
         # Remove container handle from attributes now that it can no longer be used
@@ -243,7 +248,7 @@ module Dea
 
     def destroy(&callback)
       p = Promise.new do
-        logger.info("Destroying instance")
+        logger.info "task.container.destroying"
 
         promise_destroy.resolve
 
@@ -258,20 +263,21 @@ module Dea
     # Resolve a promise making sure that only one runs at a time.
     def resolve(p, name)
       if @busy
-        logger.warn("Ignored: #{name}")
+        logger.warn "task.promise.ignored", :promise => name
         return
       else
         @busy = true
 
         Promise.resolve(p) do |error, result|
           begin
-            took = "took %.3f" % p.elapsed_time
-
             if error
-              logger.warn("Failed: #{name} (#{took})")
-              logger.log_exception(error)
+              logger.warn "task.promise.failed", :promise => name,
+                :took => p.elapsed_time,
+                :exception => error,
+                :backtrace => error.backtrace
             else
-              logger.info("Delivered: #{name} (#{took})")
+              logger.info "task.promise.delivered", :promise => name,
+                :took => p.elapsed_time
             end
 
             yield(error, result)
@@ -294,7 +300,9 @@ module Dea
       begin
         promise_warden_call_with_retry(:app, request).resolve
       rescue ::EM::Warden::Client::Error => error
-        logger.warn("Error copying files out of container: #{error.message}")
+        logger.warn "task.copy-out.failed",
+          :exception => error,
+          :backtrace => error.backtrace
       end
     end
   end
