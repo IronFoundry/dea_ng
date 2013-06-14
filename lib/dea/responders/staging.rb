@@ -1,5 +1,6 @@
 require "vcap/common"
 require "dea/staging_task"
+require "dea/win_staging_task"
 
 module Dea::Responders
   class Staging

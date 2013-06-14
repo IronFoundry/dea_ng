@@ -4,10 +4,12 @@
 base_dir: C:/IronFoundry/dea_ng
 
 logging:
-  level: all
+  level: debug2
   # file: C:/LOGS/dea_ng.log
 
 local_route: localhost
+
+domain: vcap.me
 
 resources:
   memory_mb: 2048

@@ -10,14 +10,6 @@ require "dea/staging_task_workspace"
 
 module Dea
   class StagingTask < Task
-    DROPLET_FILE = "droplet.tgz"
-    STAGING_LOG = "staging_task.log"
-
-    # ironfoundry TODO
-    WARDEN_UNSTAGED_DIR = "/tmp/unstaged"
-    WARDEN_STAGED_DIR = "/tmp/staged"
-    WARDEN_STAGED_DROPLET = "/tmp/#{DROPLET_FILE}"
-    WARDEN_STAGING_LOG = "#{WARDEN_STAGED_DIR}/logs/#{STAGING_LOG}"
 
     class StagingError < StandardError
       def initialize(msg)
@@ -176,17 +168,20 @@ module Dea
       end
     end
 
-    def promise_stage
-      # ironfoundry TODO
-      Promise.new do |p|
-        script = [
-          staging_environment,
-          config["dea_ruby"],
-          run_plugin_path,
-          workspace.plugin_config_path,
-          ">> #{workspace.warden_staging_log} 2>&1"
-        ].join(" ")
+    def promise_stage_script
+      script = [
+        staging_environment,
+        config["dea_ruby"],
+        run_plugin_path,
+        workspace.plugin_config_path,
+        ">> #{workspace.warden_staging_log} 2>&1"
+      ].join(" ")
+      script
+    end
 
+    def promise_stage
+      Promise.new do |p|
+        script = promise_stage_script
         logger.info("Staging: #{script}")
 
         Timeout.timeout(staging_timeout + staging_timeout_grace_period) do
@@ -449,7 +444,6 @@ module Dea
     end
 
     def run_plugin_path
-      # ironfoundry TODO
       # dea_ng/buildpacks/bin/run
       File.join(buildpack_dir, "bin/run")
     end

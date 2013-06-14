@@ -12,6 +12,7 @@ module Dea
     end
 
     def workspace_dir
+      # TODO delete this?
       #return @workspace_dir if @workspace_dir
       #staging_base_dir = File.join(@base_dir, "staging")
       #@workspace_dir = Dir.mktmpdir(nil, staging_base_dir)

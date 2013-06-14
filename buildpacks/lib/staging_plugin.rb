@@ -6,6 +6,7 @@ module Buildpacks
   class StagingPlugin
     attr_accessor :source_directory, :destination_directory, :staging_info_path, :environment_json
 
+    # TODO appears unused?
     def self.platform_config
       YAML.load_file(ENV['PLATFORM_CONFIG'])
     end
