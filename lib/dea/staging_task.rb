@@ -229,12 +229,18 @@ module Dea
       end
     end
 
+    def promise_pack_app_script(warden_staged_dir, warden_staged_droplet)
+      "COPYFILE_DISABLE=true tar -C #{warden_staged_dir} -czf #{warden_staged_droplet} ."
+    end
+
     def promise_pack_app
       Promise.new do |p|
-        promise_warden_run(:app, <<-BASH).resolve
-          cd #{workspace.warden_staged_dir} &&
-          COPYFILE_DISABLE=true tar -czf #{workspace.warden_staged_droplet} .
-        BASH
+        logger.info("Packing app in #{workspace.warden_staged_droplet}")
+        script = promise_pack_app_script(
+          workspace.warden_staged_dir,
+          workspace.warden_staged_droplet
+        )
+        promise_warden_run(:app, script).resolve
         p.deliver
       end
     end
@@ -257,12 +263,21 @@ module Dea
       end
     end
 
+    def promise_log_upload_started_script(warden_staged_droplet, warden_staging_log)
+      return <<-BASH
+        droplet_size=`du -h #{warden_staged_droplet} | cut -f1`
+        echo "-----> Uploading staged droplet ($droplet_size)" >> #{warden_staging_log}
+      BASH
+    end
+
     def promise_log_upload_started
       Promise.new do |p|
-        promise_warden_run(:app, <<-BASH).resolve
-          droplet_size=`du -h #{workspace.warden_staged_droplet} | cut -f1`
-          echo "-----> Uploading staged droplet ($droplet_size)" >> #{workspace.warden_staging_log}
-        BASH
+        logger.info("Uploading app from #{workspace.warden_staged_droplet}")
+        script = promise_log_upload_started_script(
+          workspace.warden_staged_droplet,
+          workspace.warden_staging_log
+        )
+        promise_warden_run(:app, script).resolve
         p.deliver
       end
     end

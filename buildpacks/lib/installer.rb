@@ -30,7 +30,7 @@ module Buildpacks
 
     def command(command_name)
       cmd = File.join(path, 'bin', command_name)
-      # TODO ironfoundry - this won't work because who knows what dir we're currently in
+      # TODO ironfoundry
       # if WINDOWS
       #   case cmd
       #     when File.exists?("#{cmd}.ps1")
@@ -40,7 +40,7 @@ module Buildpacks
       #   end
       # end
       if WINDOWS
-        cmd = "ruby.exe #{cmd}" # TODO ironfoundry this requires ruby.exe in the PATH
+        cmd = "ruby.exe #{cmd}" # TODO ironfoundry this requires ruby.exe in the PATH, assumes command_name is a ruby script
       end
       "#{cmd} #{app_dir}"
     end

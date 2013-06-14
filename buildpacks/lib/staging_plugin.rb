@@ -150,8 +150,8 @@ echo "$STARTED" >> #{pidfile_dir}/run.pid
     end
 
     def copy_source_files(dest=nil)
-      # ironfoundry TODO switch to ruby versions instead of system cp
-      system "cp -a #{File.join(source_directory, ".")} #{dest || app_dir}"
+      dest_directory = dest || app_dir
+      FileUtils.cp_r(File.join(source_directory, '.'), dest_directory)
       FileUtils.chmod_R(0744, app_dir)
     end
   end
