@@ -296,15 +296,19 @@ module Dea
     end
 
     def promise_buildpack_cache_upload
-      Promise.new do |p|
-        Upload.new(workspace.staged_buildpack_cache_path, attributes["buildpack_cache_upload_uri"], logger).upload! do |error|
-          if error
-            p.fail(error)
-          else
-            logger.info("Uploaded buildpack cache to #{attributes["buildpack_cache_upload_uri"]}")
-            p.deliver
+      if File.size?(workspace.staged_buildpack_cache_path)
+        Promise.new do |p|
+          Upload.new(workspace.staged_buildpack_cache_path, attributes["buildpack_cache_upload_uri"], logger).upload! do |error|
+            if error
+              p.fail(error)
+            else
+              logger.info("Uploaded buildpack cache to #{attributes["buildpack_cache_upload_uri"]}")
+              p.deliver
+            end
           end
         end
+      else
+        logger.info("Staged buildpack cache #{workspace.staged_buildpack_cache_path} does not exist or is zero-sized.")
       end
     end
 
@@ -327,11 +331,14 @@ module Dea
       end
     end
 
+    def promise_log_upload_finished_script(warden_staging_log)
+      return %Q|echo "-----> Uploaded droplet" >> #{warden_staging_log}|
+    end
+
     def promise_log_upload_finished
       Promise.new do |p|
-        promise_warden_run(:app, <<-BASH).resolve
-          echo "-----> Uploaded droplet" >> #{workspace.warden_staging_log}
-        BASH
+        script = promise_log_upload_finished_script(workspace.warden_staging_log)
+        promise_warden_run(:app, script).resolve
         p.deliver
       end
     end
@@ -370,14 +377,19 @@ module Dea
       end
     end
 
+    def promise_pack_buildpack_cache_script(warden_cache, warden_staged_buildpack_cache)
+        "mkdir -p #{warden_cache} && COPYFILE_DISABLE=true tar -C #{warden_cache} -czf #{warden_staged_buildpack_cache} ."
+    end
+
     def promise_pack_buildpack_cache
       Promise.new do |p|
         # TODO: Ignore if warden cache is empty or does not exists
-        promise_warden_run(:app, <<-BASH).resolve
-          mkdir -p #{workspace.warden_cache} &&
-          cd #{workspace.warden_cache} &&
-          COPYFILE_DISABLE=true tar -czf #{workspace.warden_staged_buildpack_cache} .
-        BASH
+        logger.info("Packing buildpack cache to #{workspace.warden_staged_buildpack_cache}")
+        script = promise_pack_buildpack_cache_script(
+          workspace.warden_cache,
+          workspace.warden_staged_buildpack_cache
+        )
+        promise_warden_run(:app, script).resolve
         p.deliver
       end
     end
