@@ -457,7 +457,7 @@ module Dea
 
         script << startup
         script << "exit"
-        script
+        script.join("\n")
     end
 
     def promise_start
@@ -466,7 +466,7 @@ module Dea
 
         request = ::Warden::Protocol::SpawnRequest.new
         request.handle = attributes["warden_handle"]
-        request.script = script.join("\n")
+        request.script = script
 
         request.rlimits = ::Warden::Protocol::ResourceLimits.new
         request.rlimits.nofile = self.file_descriptor_limit
