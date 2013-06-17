@@ -272,7 +272,8 @@ module Dea
 
     def promise_log_upload_started
       Promise.new do |p|
-        logger.info("Uploading app from #{workspace.warden_staged_droplet}")
+        upload_size = File.size(workspace.staged_droplet_path)
+        logger.info("Uploading app from #{workspace.staged_droplet_path} (#{upload_size}) to #{attributes["upload_uri"]}")
         script = promise_log_upload_started_script(
           workspace.warden_staged_droplet,
           workspace.warden_staging_log
@@ -296,8 +297,10 @@ module Dea
     end
 
     def promise_buildpack_cache_upload
-      if File.size?(workspace.staged_buildpack_cache_path)
+      cache_size = File.size(workspace.staged_buildpack_cache_path)
+      if cache_size > 0
         Promise.new do |p|
+          logger.info("Uploading buildpack cache from #{workspace.staged_buildpack_cache_path} (#{cache_size}) to #{attributes["buildpack_cache_upload_uri"]}")
           Upload.new(workspace.staged_buildpack_cache_path, attributes["buildpack_cache_upload_uri"], logger).upload! do |error|
             if error
               p.fail(error)

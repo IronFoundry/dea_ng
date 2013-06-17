@@ -1,10 +1,20 @@
 $:.unshift(File.expand_path("../../lib", __FILE__))
 
-require "buildpack"
+WINDOWS = RbConfig::CONFIG['host_os'] =~ /mswin|mingw/
+
+require 'buildpack'
+
+if WINDOWS
+  require 'win_buildpack'
+end
 
 unless ARGV.length == 1
   puts "Usage: run_plugin [plugin config file]"
   exit 1
 end
 
-Buildpacks::Buildpack.from_file(ARGV[0]).stage_application
+if WINDOWS
+  Buildpacks::WinBuildpack.from_file(ARGV[0]).stage_application
+else
+  Buildpacks::Buildpack.from_file(ARGV[0]).stage_application
+end

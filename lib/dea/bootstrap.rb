@@ -17,6 +17,7 @@ require "dea/directory_server_v2"
 require "dea/utils/download"
 require "dea/droplet_registry"
 require "dea/instance"
+require "dea/win_instance"
 require "dea/instance_registry"
 require "dea/staging_task_registry"
 require "dea/nats"
@@ -392,7 +393,12 @@ module Dea
         return nil
       end
 
-      instance = Instance.new(self, attributes)
+      instance = nil
+      if VCAP::WINDOWS
+        instance = WinInstance.new(self, attributes)
+      else
+        instance = Instance.new(self, attributes)
+      end
       instance.setup
 
       instance.on(Instance::Transition.new(:starting, :crashed)) do

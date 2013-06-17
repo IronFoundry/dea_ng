@@ -82,7 +82,6 @@ module Buildpacks
     end
 
     def startup_script
-      # ironfoundry TODO
       # the contents of .profile.d are created via the buildpack
       generate_startup_script(environment_variables) do
         script_content = <<-BASH

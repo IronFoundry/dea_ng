@@ -1,6 +1,6 @@
 source "https://rubygems.org"
 
-gem "eventmachine"
+gem 'eventmachine', '>= 1.0.3'
 gem "em-http-request"
 
 gem "em-warden-client", :git => "https://github.com/cloudfoundry/warden.git"

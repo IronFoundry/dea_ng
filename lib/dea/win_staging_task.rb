@@ -39,14 +39,14 @@ module Dea
     def promise_pack_buildpack_cache_script(warden_cache, warden_staged_buildpack_cache)
       commands = [
         { :cmd => 'mkdir', :args => [ warden_cache ] },
-        { :cmd => 'tar', :args => [ warden_cache, warden_staged_buildpack_cache ] },
+        { :cmd => 'tar', :args => [ 'c', warden_cache, warden_staged_buildpack_cache ] },
       ]
       commands.to_json
     end
 
     def promise_pack_app_script(warden_staged_dir, warden_staged_droplet)
       commands = [
-        { :cmd => 'tar', :args => [ warden_staged_dir, warden_staged_droplet ] },
+        { :cmd => 'tar', :args => [ 'c', warden_staged_dir, warden_staged_droplet ] },
       ]
       commands.to_json
     end

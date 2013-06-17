@@ -95,7 +95,6 @@ module Buildpacks
     end
 
     def generate_startup_script(env_vars = {})
-      # ironfoundry TODO override for powershell / asp.net
       # idea: just pass config data and env as startup?
       after_env_before_script = block_given? ? yield : "\n"
       template = <<-SCRIPT
