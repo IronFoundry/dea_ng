@@ -44,7 +44,8 @@ module Dea
     SIGNALS_OF_INTEREST = %W(TERM INT)
     # ironfoundry TODO
     unless VCAP::WINDOWS
-      SIGNALS_OF_INTEREST.push(%W(QUIT USR1 USR2))
+      signals = %W(QUIT USR1 USR2)
+      SIGNALS_OF_INTEREST.push(*signals)
     end
 
     attr_reader :config
