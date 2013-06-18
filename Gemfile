@@ -22,6 +22,7 @@ gem "steno", :path => "C:/proj/cf/steno", :branch => "ironfoundry"
 
 gem 'uuidtools', '~> 2.1'
 gem 'nokogiri', '>= 1.4.4'
+gem "vmstat"
 
 gem "sys-filesystem"
 

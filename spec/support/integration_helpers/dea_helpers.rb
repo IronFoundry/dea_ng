@@ -3,7 +3,7 @@ require "yaml"
 module DeaHelpers
   def is_port_open?(ip, port)
     begin
-      Timeout::timeout(1) do
+      Timeout::timeout(5) do
         begin
           s = TCPSocket.new(ip, port)
           s.close
@@ -13,6 +13,7 @@ module DeaHelpers
         end
       end
     rescue Timeout::Error
+      p "Timed out attempting to connect to #{ip}:#{port}"
     end
 
     return false
