@@ -547,6 +547,8 @@ module Dea
         # instance crashes before the health check completes.
         link
 
+        log(:debug2, "droplet.starting - before promise_health_check")
+
         if promise_health_check.resolve
           log(:info, "droplet.healthy")
           promise_state(State::STARTING, State::RUNNING).resolve
@@ -556,6 +558,8 @@ module Dea
           log(:warn, "droplet.unhealthy")
           p.fail("App instance failed health check")
         end
+
+        log(:debug2, "droplet.starting - after promise_health_check")
 
         p.deliver
       end
@@ -870,9 +874,15 @@ module Dea
 
     def promise_health_check
       Promise.new do |p|
+
+        log(:debug2, "promise_health_check - before promise_container_info.resolve")
+
         info = promise_container_info.resolve
 
         manifest = promise_read_instance_manifest(info.container_path).resolve
+
+        log(:debug2, "promise_health_check manifest #{manifest.inspect}")
+        log(:debug2, "promise_health_check application_uris #{application_uris}")
 
         if manifest["state_file"]
           manifest_path = container_relative_path(info.container_path, manifest["state_file"])

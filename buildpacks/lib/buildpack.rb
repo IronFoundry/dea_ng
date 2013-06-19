@@ -58,6 +58,7 @@ module Buildpacks
     end
 
     def start_command
+      # environment["meta"]["command"] comes from plugin_config in DEA staging directory
       return environment["meta"]["command"] if environment["meta"] && environment["meta"]["command"]
       procfile["web"] ||
         release_info.fetch("default_process_types", {})["web"] ||

@@ -3,7 +3,7 @@ module Buildpacks
 
     def create_startup_script
       path = File.join(script_dir, 'startup.ps1')
-      File.open(path, 'wb') do |f|
+      File.open(path, 'w') do |f|
         f.puts(startup_script)
       end
     end
@@ -35,7 +35,7 @@ $droplet_base_dir = $PWD
 $stdout_path = "$droplet_base_dir\\logs\\stdout.log"
 $stderr_path = "$droplet_base_dir\\logs\\stderr.log"
 <%= change_directory_for_start %>
-$process = Start-Process -FilePath .\\iishost.exe -NoNewWindow -PassThru -RedirectStandardOutput $stdout_path -RedirectStandardError $stderr_path 
+$process = Start-Process -FilePath .\\iishost\\iishost.exe -NoNewWindow -PassThru -RedirectStandardOutput $stdout_path -RedirectStandardError $stderr_path -ArgumentList "-p $port"
 Set-Content -Path "$droplet_base_dir\\run.pid" -Encoding ASCII $process.id
 Wait-Process -InputObject $process
       SCRIPT
@@ -56,7 +56,7 @@ Wait-Process -InputObject $process
         #   done
         # fi
         script_content = <<-PS1
-Get-ChildItem env: | Out-File -FilePath logs\\env.log -Encoding ASCII -Force
+Get-ChildItem env: | Out-File -FilePath .\\logs\\env.log -Encoding ASCII -Force
 PS1
         script_content
       end

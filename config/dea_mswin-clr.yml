@@ -5,9 +5,9 @@ base_dir: C:/IronFoundry/dea_ng
 
 logging:
   level: debug2
-  # file: C:/LOGS/dea_ng.log
+  # file: C:/IronFoundry/log/dea_ng.log
 
-local_route: localhost
+local_route: 192.168.170.135
 
 domain: vcap.me
 

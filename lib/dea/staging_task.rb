@@ -397,17 +397,23 @@ module Dea
       end
     end
 
+    def promise_unpack_buildpack_cache_script(downloaded_buildpack_cache_path, warden_staging_log, warden_cache)
+      return <<-BASH
+        package_size=`du -h #{downloaded_buildpack_cache_path} | cut -f1`
+        echo "-----> Downloaded app buildpack cache ($package_size)" >> #{warden_staging_log}
+        mkdir -p #{warden_cache}
+        tar -C #{warden_cache} -xzf #{downloaded_buildpack_cache_path}
+      BASH
+    end
+
     def promise_unpack_buildpack_cache
       Promise.new do |p|
         if File.exists?(workspace.downloaded_buildpack_cache_path)
           logger.info("Unpacking buildpack cache to #{workspace.warden_cache}")
 
-          promise_warden_run(:app, <<-BASH).resolve
-          package_size=`du -h #{workspace.downloaded_buildpack_cache_path} | cut -f1`
-          echo "-----> Downloaded app buildpack cache ($package_size)" >> #{workspace.warden_staging_log}
-          mkdir -p #{workspace.warden_cache}
-          tar xfz #{workspace.downloaded_buildpack_cache_path} -C #{workspace.warden_cache}
-          BASH
+          script = promise_unpack_buildpack_cache(workspace.downloaded_buildpack_cache_path,
+                                                  workspace.warden_staging_log, workspace.warden_cache)
+          promise_warden_run(:app, script).resolve
         end
 
         p.deliver

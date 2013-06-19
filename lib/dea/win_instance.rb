@@ -6,8 +6,8 @@ module Dea
     def promise_setup_environment_script
       # cd / && mkdir -p home/vcap/app && chown vcap:vcap home/vcap/app && ln -s home/vcap/app /app
       commands = [
-        { :cmd => 'mkdir', :args => [ '@ROOT@/home/vcap/app' ] },
-        { :cmd => 'mkdir', :args => [ '@ROOT@/app' ] },
+        # { :cmd => 'mkdir', :args => [ '@ROOT@/home/vcap/app' ] },
+        { :cmd => 'mkdir', :args => [ '@ROOT@/app' ] }
       ]
       commands.to_json
     end
@@ -15,7 +15,8 @@ module Dea
     def promise_extract_droplet_script(droplet_path)
       # tar -C /home/vcap -xzf #{droplet.droplet_path}
       commands = [
-        { :cmd => 'tar', :args => [ 'x', '@ROOT@/home/vcap', droplet_path ] },
+        # { :cmd => 'tar', :args => [ 'x', '@ROOT@/home/vcap', droplet_path ] },
+        { :cmd => 'tar', :args => [ 'x', '@ROOT@', droplet_path ] },
       ]
       commands.to_json
     end
@@ -23,7 +24,7 @@ module Dea
     def build_env(script)
       env = Env.new(self)
       env.env.each do |k, v|
-        script << "$env:%s='%s'" % [k, v]
+        script << "$env:%s=%s" % [k, v]
       end
     end
 
@@ -62,12 +63,13 @@ module Dea
       # warden_path = attributes["warden_container_path"]
       # container_relative_path = File.join(warden_path, *parts)
       container_relative_path = super(root, *parts)
-      log(:debug2, "container_relative_path('#{root}', '#{parts.inspect}'), rv '#{rv}'")
+      log(:debug2, "container_relative_path('#{root}', '#{parts.inspect}'), rv '#{container_relative_path}'")
       return container_relative_path;
     end
 
     def promise_copy_out_src_dir
-      "@ROOT@/home/vcap"
+      # "@ROOT@/home/vcap"
+      "@ROOT@"
     end
 
   end

@@ -54,10 +54,23 @@ module Dea
     def promise_log_upload_started_script(warden_staged_droplet, warden_staging_log)
       commands = [
         { :cmd => 'ps1', :args => [
-            %Q|$droplet_item_length = (Get-Item '#{warden_staged_droplet}').Length|,
-            %q|$droplet_item_length_str = '{0:N0}KB' -f ($droplet_item_length / 1KB)|,
-            %Q|Add-Content -Encoding ASCII -Path #{warden_staging_log} "----> Uploading staged droplet ($droplet_item_length_str)"| ]
+            %Q|$item_length = (Get-Item '#{warden_staged_droplet}').Length|,
+            %q|$item_length_str = '{0:N0}KB' -f ($item_length / 1KB)|,
+            %Q|Add-Content -Encoding ASCII -Path #{warden_staging_log} "----> Uploading staged droplet ($item_length_str)"| ]
         },
+      ]
+      commands.to_json
+    end
+
+    def promise_unpack_buildpack_cache_script(downloaded_buildpack_cache_path, warden_staging_log, warden_cache)
+      commands = [
+        { :cmd => 'ps1', :args => [
+            %Q|$item_length = (Get-Item '#{downloaded_buildpack_cache_path}').Length|,
+            %q|$item_length_str = '{0:N0}KB' -f ($item_length / 1KB)|,
+            %Q|Add-Content -Encoding ASCII -Path #{warden_staging_log} "----> Downloaded app buildpack cache ($item_length_str)"| ]
+        },
+        { :cmd => 'mkdir', :args => [ warden_cache ] },
+        { :cmd => 'tar', :args => [ 'x', warden_cache, downloaded_buildpack_cache_path ] }
       ]
       commands.to_json
     end
@@ -65,9 +78,9 @@ module Dea
     def promise_unpack_app_script(droplet_path, warden_staging_log, warden_unstaged_dir)
       commands = [
         { :cmd => 'ps1', :args => [
-            %Q|$droplet_item_length = (Get-Item '#{droplet_path}').Length|,
-            %q|$droplet_item_length_str = '{0:N0}KB' -f ($droplet_item_length / 1KB)|,
-            %Q|Add-Content -Encoding ASCII -Path #{warden_staging_log} "----> Downloaded app package ($droplet_item_length_str)"| ]
+            %Q|$item_length = (Get-Item '#{droplet_path}').Length|,
+            %q|$item_length_str = '{0:N0}KB' -f ($item_length / 1KB)|,
+            %Q|Add-Content -Encoding ASCII -Path #{warden_staging_log} "----> Downloaded app package ($item_length_str)"| ]
         },
         { :cmd => 'unzip', :args => [ droplet_path, warden_unstaged_dir ] },
       ]
