@@ -26,22 +26,19 @@ module Buildpacks
     def generate_startup_script(env_vars = {})
       # idea: just pass config data and env as startup?
       after_env_before_script = block_given? ? yield : "\n"
-      template = <<-SCRIPT
-[CmdletBinding()]
-param([uint16] $port)
-<%= environment_statements_for(env_vars) %>
-<%= after_env_before_script %>
-$droplet_base_dir = $PWD
-$stdout_path = "$droplet_base_dir\\logs\\stdout.log"
-$stderr_path = "$droplet_base_dir\\logs\\stderr.log"
-<%= change_directory_for_start %>
-$process = Start-Process -FilePath .\\iishost\\iishost.exe -NoNewWindow -PassThru -RedirectStandardOutput $stdout_path -RedirectStandardError $stderr_path -ArgumentList "-p $port"
-Set-Content -Path "$droplet_base_dir\\run.pid" -Encoding ASCII $process.id
-Wait-Process -InputObject $process
+      <<-SCRIPT.gsub(/^\s{8}/, "")
+        [CmdletBinding()]
+        param([uint16] $port)
+        <%= environment_statements_for(env_vars) %>
+        <%= after_env_before_script %>
+        $droplet_base_dir = $PWD
+        $stdout_path = "$droplet_base_dir\\logs\\stdout.log"
+        $stderr_path = "$droplet_base_dir\\logs\\stderr.log"
+        cd app
+        $process = Start-Process -FilePath .\\iishost\\iishost.exe -NoNewWindow -PassThru -RedirectStandardOutput $stdout_path -RedirectStandardError $stderr_path -ArgumentList "-p $port"
+        Set-Content -Path "$droplet_base_dir\\run.pid" -Encoding ASCII $process.id
+        Wait-Process -InputObject $process
       SCRIPT
-      # TODO - ERB is pretty irritating when it comes to blank lines, such as when 'after_env_before_script' is nil.
-      # There is probably a better way that doesn't involve making the above Heredoc horrible.
-      ERB.new(template).result(binding).lines.reject {|l| l =~ /^\s*$/}.join
     end
 
     def startup_script

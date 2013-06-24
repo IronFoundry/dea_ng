@@ -25,6 +25,7 @@ module Dea
 
     attr_reader :bootstrap, :dir_server, :attributes, :container_path, :task_id
 
+    # attributes come from the staging message 'data' property
     def initialize(bootstrap, dir_server, attributes, custom_logger=nil)
       super(bootstrap.config, custom_logger)
 
@@ -411,7 +412,7 @@ module Dea
         if File.exists?(workspace.downloaded_buildpack_cache_path)
           logger.info("Unpacking buildpack cache to #{workspace.warden_cache}")
 
-          script = promise_unpack_buildpack_cache(workspace.downloaded_buildpack_cache_path,
+          script = promise_unpack_buildpack_cache_script(workspace.downloaded_buildpack_cache_path,
                                                   workspace.warden_staging_log, workspace.warden_cache)
           promise_warden_run(:app, script).resolve
         end
