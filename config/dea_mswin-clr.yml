@@ -25,7 +25,7 @@ nats_uri: nats://api2.vcap.me:4222/
 
 pid_filename: C:/IronFoundry/run/dea_ng.pid
 
-warden_socket: C:/IronFoundry/warden.sock # ironfoundry TODO
+warden_socket: tcp://localhost:4444
 
 evacuation_delay_secs: 5
 

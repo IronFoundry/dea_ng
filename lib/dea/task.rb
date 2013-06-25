@@ -5,6 +5,7 @@ require "steno"
 require "steno/core_ext"
 require "dea/promise"
 require "vmstat"
+require "uri"
 
 module Dea
   class Task
@@ -59,15 +60,23 @@ module Dea
           p.deliver(connection)
         else
           socket = config["warden_socket"]
-          klass  = ::EM::Warden::Client::Connection
+          klass = ::EM::Warden::Client::Connection
 
           begin
-            # ironfoundry TODO
-            # connection = ::EM.connect_unix_domain(socket, klass)
-            connection = ::EM.connect('localhost', 4444, klass)
-          rescue => error
-            # ironfoundry TODO p.fail(WardenError.new("Cannot connect to warden on #{socket}: #{error.message}"))
-            p.fail(WardenError.new("Cannot connect to warden on localhost:4444: #{error.message}"))
+            uri = URI.parse(socket)
+            if uri.scheme == 'file'
+               connection = ::EM.connect_unix_domain(uri.path, klass)
+            else
+              connection = ::EM.connect(uri.host, uri.port, klass)
+            end
+          rescue Exception => err
+            logger.debug "URI::Parse unsuccessful, task.warden.socket: #{socket}"
+
+            begin
+              connection = ::EM.connect_unix_domain(socket, klass)
+            rescue => error
+              p.fail(WardenError.new("Cannot connect to warden on #{socket}: #{error.message}"))
+            end
           end
 
           if connection
