@@ -29,13 +29,13 @@ module Buildpacks
       <<-SCRIPT.gsub(/^\s{8}/, "")
         [CmdletBinding()]
         param([uint16] $port)
-        <%= environment_statements_for(env_vars) %>
-        <%= after_env_before_script %>
+        #{environment_statements_for(env_vars)}
+        #{after_env_before_script}
         $droplet_base_dir = $PWD
         $stdout_path = "$droplet_base_dir\\logs\\stdout.log"
         $stderr_path = "$droplet_base_dir\\logs\\stderr.log"
         cd app
-        $process = Start-Process -FilePath .\\iishost\\iishost.exe -NoNewWindow -PassThru -RedirectStandardOutput $stdout_path -RedirectStandardError $stderr_path -ArgumentList "-p $port"
+        $process = Start-Process -FilePath #{start_command} -NoNewWindow -PassThru -RedirectStandardOutput $stdout_path -RedirectStandardError $stderr_path -ArgumentList "-p $port"
         Set-Content -Path "$droplet_base_dir\\run.pid" -Encoding ASCII $process.id
         Wait-Process -InputObject $process
       SCRIPT

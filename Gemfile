@@ -14,14 +14,10 @@ gem "thin"
 gem "yajl-ruby", :require => %w[yajl yajl/json_gem]
 gem "grape", :git => "https://github.com/intridea/grape.git"
 
-# gem "vcap_common", :git => "https://github.com/cloudfoundry/vcap-common.git"
 gem "vcap_common", :git => "https://github.com/IronFoundry/vcap-common.git", :branch => "ironfoundry"
 
-# gem "steno", :git => "https://github.com/IronFoundry/steno.git", :branch => "ironfoundry"
-gem "steno", :path => "C:/proj/cf/steno", :branch => "ironfoundry"
+gem "steno", :git => "https://github.com/IronFoundry/steno.git", :branch => "ironfoundry"
 
-gem 'uuidtools', '~> 2.1'
-gem 'nokogiri', '>= 1.4.4'
 gem "vmstat"
 
 gem "sys-filesystem"
@@ -34,6 +30,6 @@ group :test do
   gem "librarian"
   gem "rspec"
   gem "rack-test"
-  gem "rcov", "0.9.11"
+  gem "rcov"
   gem "ci_reporter"
 end

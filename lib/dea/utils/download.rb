@@ -32,8 +32,16 @@ class Download
     http = EM::HttpRequest.new(uri).get
 
     http.stream do |chunk|
-      file << chunk
-      sha1 << chunk
+      begin
+        file << chunk
+      rescue Errno::EBADF
+        logger.warn("Errno::EBADF in file: #{$!}") # ironfoundry TODO
+      end
+      begin
+        sha1 << chunk
+      rescue Errno::EBADF
+        logger.warn("Errno::EBADF in sha1: #{$!}") # ironfoundry TODO
+      end
     end
 
     cleanup = lambda do |&inner|
@@ -50,7 +58,7 @@ class Download
 
     http.errback do
       cleanup.call do
-        error = DownloadError.new("Response status: unknown", context)
+        error = DownloadError.new("Response status: unknown. Error: #{http.error} Http: #{http.inspect}", context)
         logger.warn(error.message, error.data)
         blk.call(error)
       end

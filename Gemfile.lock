@@ -1,9 +1,20 @@
 GIT
-  remote: https://github.com/IronFoundry/vcap-common.git
-  revision: 90cfab996c8895c979267b0b72dcfbf6b0196892
+  remote: https://github.com/IronFoundry/steno.git
+  revision: 752f285d9a5a8184eef6221c77836389fcb53710
   branch: ironfoundry
   specs:
-    vcap_common (2.0.10)
+    steno (1.1.0)
+      fluent-logger
+      grape
+      yajl-ruby (~> 1.0)
+
+GIT
+  remote: https://github.com/IronFoundry/vcap-common.git
+  revision: 01eddc88406bbfb95dee4a9abd22b32a113640bc
+  branch: ironfoundry
+  specs:
+    vcap_common (2.1.0)
+      addressable (~> 2.2)
       em-http-request (~> 1.0)
       eventmachine
       httpclient
@@ -12,6 +23,7 @@ GIT
       multipart-post
       nats (~> 0.4.24)
       posix-spawn (~> 0.3.6)
+      squash_ruby
       thin
       uuidtools
       vmstat (~> 2.0)
@@ -19,7 +31,7 @@ GIT
 
 GIT
   remote: https://github.com/cloudfoundry/warden.git
-  revision: 2fd4fcd3313898aae54f5a42e1b87fc51c77fa2f
+  revision: 609bbdfa0ea796ff0c140e937d475fa8081388fb
   specs:
     em-warden-client (0.1.1)
       eventmachine
@@ -32,7 +44,7 @@ GIT
 
 GIT
   remote: https://github.com/intridea/grape.git
-  revision: 46a63887e65be480510b46c6f126c348cd396793
+  revision: 1029e0fce76b2957b1a4c1a0c3a89897046ef3d8
   specs:
     grape (0.4.2)
       activesupport
@@ -45,14 +57,6 @@ GIT
       rack-mount
       virtus
 
-PATH
-  remote: C:/proj/cf/steno
-  specs:
-    steno (1.1.0)
-      fluent-logger
-      grape
-      yajl-ruby (~> 1.0)
-
 GEM
   remote: https://rubygems.org/
   specs:
@@ -60,16 +64,30 @@ GEM
       i18n (= 0.6.1)
       multi_json (~> 1.0)
     addressable (2.3.4)
+    archive-tar-minitar (0.5.2)
     backports (3.3.1)
     beefcake (0.3.7)
-    builder (3.2.2)
-    ci_reporter (1.8.4)
+    builder (3.0.0)
+    chef (11.0.0)
+      erubis
+      highline (>= 1.6.9)
+      json (>= 1.4.4, <= 1.6.1)
+      mixlib-authentication (>= 1.3.0)
+      mixlib-cli (~> 1.3.0)
+      mixlib-config (>= 1.1.2)
+      mixlib-log (>= 1.3.0)
+      mixlib-shellout
+      net-ssh (~> 2.2.2)
+      net-ssh-multi (~> 1.1.0)
+      ohai (>= 0.6.0)
+      rest-client (>= 1.0.4, < 1.7.0)
+      yajl-ruby (~> 1.1)
+    ci_reporter (1.7.0)
       builder (>= 2.1.2)
     cookiejar (0.3.0)
     daemons (1.1.9)
     descendants_tracker (0.0.1)
-    diff-lcs (1.2.4)
-    dotenv (0.7.0)
+    diff-lcs (1.2.1)
     em-http-request (1.0.3)
       addressable (>= 2.2.3)
       cookiejar
@@ -78,32 +96,44 @@ GEM
       http_parser.rb (>= 0.5.3)
     em-socksify (0.2.1)
       eventmachine (>= 1.0.0.beta.4)
+    erubis (2.7.0)
     eventmachine (1.0.3)
     eventmachine (1.0.3-x86-mingw32)
-    ffi (1.9.0-x86-mingw32)
-    fluent-logger (0.4.5)
-      msgpack (= 0.4.7)
+    ffi (1.0.11)
+    fluent-logger (0.4.6)
+      msgpack (>= 0.4.4, < 0.6.0, != 0.5.3, != 0.5.2, != 0.5.1, != 0.5.0)
       yajl-ruby (~> 1.0)
-    foreman (0.63.0)
-      dotenv (>= 0.7)
+    foreman (0.61.0)
       thor (>= 0.13.6)
-    foreman (0.63.0-x86-mingw32)
-      dotenv (>= 0.7)
+    foreman (0.61.0-x86-mingw32)
       thor (>= 0.13.6)
       win32console (~> 1.3.0)
     hashie (2.0.5)
-    highline (1.6.19)
+    highline (1.6.15)
+    http_parser.rb (0.5.3)
     http_parser.rb (0.5.3-x86-mingw32)
     httpclient (2.3.3)
     i18n (0.6.1)
+    ipaddress (0.8.0)
+    json (1.5.5)
     json_pure (1.8.0)
-    librarian (0.1.0)
+    librarian (0.0.26)
+      archive-tar-minitar (>= 0.5.2)
+      chef (>= 0.10)
       highline
       thor (~> 0.15)
     membrane (0.0.2)
     mime-types (1.23)
-    mini_portile (0.5.0)
-    msgpack (0.4.7-x86-mingw32)
+    mixlib-authentication (1.3.0)
+      mixlib-log
+    mixlib-cli (1.3.0)
+    mixlib-config (1.1.2)
+    mixlib-log (1.4.1)
+    mixlib-shellout (1.1.0)
+    mixlib-shellout (1.1.0-x86-mingw32)
+      win32-process (~> 0.6.5)
+    msgpack (0.5.5)
+    msgpack (0.5.5-x86-mingw32)
     multi_json (1.7.6)
     multi_xml (0.5.4)
     multipart-post (1.2.0)
@@ -112,8 +142,20 @@ GEM
       eventmachine (>= 0.12.10)
       json_pure (>= 1.7.3)
       thin (>= 1.4.1)
-    nokogiri (1.6.0-x86-mingw32)
-      mini_portile (~> 0.5.0)
+    net-ssh (2.2.2)
+    net-ssh-gateway (1.1.0)
+      net-ssh (>= 1.99.1)
+    net-ssh-multi (1.1)
+      net-ssh (>= 2.1.4)
+      net-ssh-gateway (>= 0.99.0)
+    ohai (6.16.0)
+      ipaddress
+      mixlib-cli
+      mixlib-config
+      mixlib-log
+      mixlib-shellout
+      systemu
+      yajl-ruby
     patron (0.4.18)
     posix-spawn (0.3.6)
     rack (1.5.2)
@@ -121,12 +163,14 @@ GEM
       rack (>= 0.4)
     rack-mount (0.8.3)
       rack (>= 1.0.0)
-    rack-protection (1.5.0)
+    rack-protection (1.4.0)
       rack
-    rack-test (0.6.2)
+    rack-test (0.6.1)
       rack (>= 1.0)
-    rake (10.0.4)
+    rake (10.0.3)
     rcov (0.9.11)
+    rest-client (1.6.7)
+      mime-types (>= 1.16)
     rspec (2.13.0)
       rspec-core (~> 2.13.0)
       rspec-expectations (~> 2.13.0)
@@ -134,29 +178,46 @@ GEM
     rspec-core (2.13.1)
     rspec-expectations (2.13.0)
       diff-lcs (>= 1.1.3, < 2.0)
-    rspec-mocks (2.13.1)
-    sinatra (1.4.3)
+    rspec-mocks (2.13.0)
+    sinatra (1.3.5)
       rack (~> 1.4)
-      rack-protection (~> 1.4)
-      tilt (~> 1.3, >= 1.3.4)
-    sys-filesystem (1.1.0)
-      ffi
+      rack-protection (~> 1.3)
+      tilt (~> 1.3, >= 1.3.3)
+    squash_ruby (1.2.0)
+      json
+    sys-filesystem (1.0.0)
+      ffi (>= 1.0.0)
+    sys-filesystem (1.0.0-x86-mingw32)
+      windows-pr (>= 1.0.5)
+    systemu (2.5.2)
     thin (1.5.1)
       daemons (>= 1.0.9)
       eventmachine (>= 0.12.6)
       rack (>= 1.0.0)
-    thor (0.18.1)
-    tilt (1.4.1)
+    thor (0.15.4)
+    tilt (1.3.4)
     timecop (0.6.1)
     uuidtools (2.1.4)
     virtus (0.5.5)
       backports (~> 3.3)
       descendants_tracker (~> 0.0.1)
     vmstat (2.0.0)
+    win32-api (1.4.8)
+    win32-api (1.4.8-x86-mingw32)
+    win32-process (0.6.6)
+      windows-pr (>= 1.2.2)
+    win32console (1.3.2)
     win32console (1.3.2-x86-mingw32)
+    windows-api (0.4.2)
+      win32-api (>= 1.4.5)
+    windows-pr (1.2.2)
+      win32-api (>= 1.4.5)
+      windows-api (>= 0.3.0)
+    yajl-ruby (1.1.0)
     yajl-ruby (1.1.0-x86-mingw32)
 
 PLATFORMS
+  ruby
   x86-mingw32
 
 DEPENDENCIES
@@ -168,19 +229,17 @@ DEPENDENCIES
   grape!
   librarian
   nats
-  nokogiri (>= 1.4.4)
   patron
   rack
   rack-test
   rake
-  rcov (= 0.9.11)
+  rcov
   rspec
   sinatra
   steno!
   sys-filesystem
   thin
   timecop
-  uuidtools (~> 2.1)
   vcap_common!
   vmstat
   warden-client!
