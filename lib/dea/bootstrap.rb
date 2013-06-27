@@ -337,11 +337,18 @@ module Dea
       start_component
       start_nats
       start_directory_server
+      greet_router
       register_directory_server_v2
       directory_server_v2.start
       setup_varz
 
       start_finish
+    end
+
+    def greet_router
+      @router_client.greet do |response|
+        handle_router_start(response)
+      end
     end
 
     def snapshot_path
@@ -473,6 +480,17 @@ module Dea
     end
 
     def handle_router_start(message)
+      interval = message.data.nil? ? nil : message.data["minimumRegisterIntervalInSeconds"]
+      register_routes
+
+      EM.cancel_timer(@registration_timer) if @registration_timer
+
+      @registration_timer = EM.add_periodic_timer(interval) do
+        register_routes
+      end
+    end
+
+    def register_routes
       instance_registry.each do |instance|
         next if !instance.running? || instance.application_uris.empty?
         router_client.register_instance(instance)

@@ -31,9 +31,9 @@ describe Dea do
                 Dea::Instance::State::RUNNING]
       all_uris = [["foo"], ["bar"], []]
 
-      states.zip(all_uris).each_with_index do |(state, uris), ii|
+      states.zip(all_uris).each_with_index do |(state, uris), app_id|
         instance = create_and_register_instance(bootstrap,
-                                                "application_id"   => ii.to_s,
+                                                "application_id"   => app_id.to_s,
                                                 "application_uris" => uris)
         instance.state = state
         instances << instance
@@ -62,6 +62,47 @@ describe Dea do
     # The directory server is registered at startup, thus we expect two
     # registrations to arrive
     responses.should =~ [expected_0, expected_1, expected_1]
+  end
+
+  it "sets up a periodic timer with the requested interval" do
+    em do
+      bootstrap.setup
+      bootstrap.start
+
+      EM.should_receive(:add_periodic_timer).with(13)
+      nats_mock.publish("router.start", {:minimumRegisterIntervalInSeconds => 13})
+
+      done
+    end
+  end
+
+  it "clears previous timer and creates a new one if a timer already exists" do
+    em do
+      bootstrap.setup
+      bootstrap.start
+
+      EM.should_receive(:add_periodic_timer).with(13).and_return(:foobar)
+      nats_mock.publish("router.start", {:minimumRegisterIntervalInSeconds => 13})
+
+      EM.should_receive(:cancel_timer).with(:foobar)
+      EM.should_receive(:add_periodic_timer).with(14)
+      nats_mock.publish("router.start", {:minimumRegisterIntervalInSeconds => 14})
+
+      done
+    end
+  end
+
+  it "sends router.greet on startup and registers a timer" do
+    em do
+      bootstrap.setup
+      bootstrap.start
+
+      EM.should_receive(:add_periodic_timer).with(13)
+
+      nats_mock.respond_to_channel("router.greet", :minimumRegisterIntervalInSeconds => 13)
+
+      done
+    end
   end
 
   describe "router.register message" do
