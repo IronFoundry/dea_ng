@@ -4,8 +4,8 @@
 base_dir: C:/IronFoundry/dea_ng
 
 logging:
-  level: debug2
-  # file: C:/IronFoundry/log/dea_ng.log
+  level: error
+  file: C:/IronFoundry/log/dea_ng.log
 
 local_route: 192.168.170.141
 
@@ -21,10 +21,10 @@ resources:
 # production apps. (default: false)
 only_production_apps: false
 
-crash_block_usage_ratio_threshold: 0.98
-crash_inode_usage_ratio_threshold: 0.98
+# crash_block_usage_ratio_threshold: 0.98
+# crash_inode_usage_ratio_threshold: 0.98
 
-nats_uri: nats://api2.vcap.me:4222/
+nats_uri: nats://192.168.170.131:4222/
 
 pid_filename: C:/IronFoundry/run/dea_ng.pid
 
@@ -39,13 +39,13 @@ staging:
   platform_config:
     cache: C:/IronFoundry/package_cache/ruby
   environment:
-    PATH: C:\Rubies\Ruby193-dea_ng\bin # NB: backslashes
+    PATH: C:\Ruby193\bin # NB: backslashes
     BUILDPACK_CACHE: C:/IronFoundry/buildpack_cache
   memory_limit_mb: 1024
   disk_limit_mb: 2048
   max_staging_duration: 900 # 15 minutes
 
-dea_ruby: C:/Rubies/Ruby193-dea_ng/bin/ruby.exe
+dea_ruby: C:/Ruby193/bin/ruby.exe
 
 # For Go-based directory server
 directory_server:

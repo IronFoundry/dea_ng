@@ -22,6 +22,8 @@ gem "vmstat"
 
 gem "sys-filesystem"
 
+gem "win32-service"
+
 group :test do
   gem "timecop"
   gem "patron"
