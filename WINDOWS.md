@@ -10,10 +10,10 @@ Installing the DEA on Windows
   * NATS user / password (if used)
   * Cloud foundry domain (i.e. `vcap.me`)
 
-It is recommended to use the [installation package](#install-package) to install the V2 DEA on Windows. If you'd like, you can use the [install
-from scratch](#install-scratch) instructions to install everything manually.
+It is recommended to use the [installation package](#installation-package) to install the V2 DEA on Windows. If you'd like, you can use the [install
+from scratch](#installation-from-scratch) instructions to install everything manually.
 
-<a id="install-package">Installation package:</a>
+Installation package:
 -------------------------------------------------
 
 Download a zip archive with necessary Ruby binaries and other files from this location:
@@ -33,7 +33,6 @@ git version 1.8.3.msysgit.0
 ```
 C:\IronFoundry
 C:\Ruby193
-C:\RubyDevKit
 ```
 
 * After extracting, run the post-install script as an administrative user to include `C:\Ruby193\bin` in the system `PATH` and to install the
@@ -44,7 +43,7 @@ C:\>cd C:\IronFoundry\dea_ng\app\win32
 C:\IronFoundry\dea_ng\app\win32>install.cmd
 ```
 
-<a id="install-scratch">Installation from scratch:</a>
+Installation from scratch:
 ------------------------------------------------------
 
 * Ensure that `git` is installed and in your `PATH`
@@ -110,16 +109,6 @@ Successfully installed patron-0.4.18
 1 gem installed
 ```
 
-* Clone the `eventmachine` source from the Iron Foundry organization and build from the `ironfoundry` branch (extra output truncated):
-
-```
-C:\tmp>git clone --branch ironfoundry https://github.com/IronFoundry/eventmachine.git
-Cloning into 'eventmachine'...
-C:\tmp>cd eventmachine
-C:\tmp\eventmachine>gem build eventmachine.gemspec
-C:\tmp\eventmachine>gem install eventmachine-1.0.3.gem
-```
-
 * Create the required directory structure using the following set of commands, which may be saved as a batch file:
 
 ```
@@ -141,7 +130,7 @@ mkdir C:\IronFoundry\warden\containers
 
 ```
 C:\tmp>cd \IronFoundry\dea_ng
-C:\IronFoundry\dea_ng> git clone --branch ironfoundry --recursive https://github.com/IronFoundry/dea_ng.git app
+C:\IronFoundry\dea_ng>git clone --branch ironfoundry --recursive https://github.com/IronFoundry/dea_ng.git app
 ```
 
 * Install required gems for `dea_ng` (extra output truncated):
@@ -150,6 +139,18 @@ C:\IronFoundry\dea_ng> git clone --branch ironfoundry --recursive https://github
 C:\IronFoundry\dea_ng>cd app
 C:\IronFoundry\dea_ng\app>bundle install
 ```
+
+* You must install eventmachine from source. Clone the `eventmachine` source from the Iron Foundry organization and build from the `ironfoundry` branch (extra output truncated):
+
+```
+C:\tmp>git clone --branch ironfoundry https://github.com/IronFoundry/eventmachine.git
+Cloning into 'eventmachine'...
+C:\tmp>cd eventmachine
+C:\tmp\eventmachine>gem uninstall eventmachine # Say 'Yes' to all versions here!
+C:\tmp\eventmachine>gem build eventmachine.gemspec
+C:\tmp\eventmachine>gem install eventmachine-1.0.3.gem
+```
+
 
 * Set up the DEA as a windows service and add some firewall rules:
 

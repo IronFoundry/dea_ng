@@ -6,10 +6,10 @@ require 'bundler/setup'
 
 $LOAD_PATH.unshift(File.expand_path('../../lib', __FILE__))
 
-require "eventmachine"
-require "yaml"
+require 'eventmachine'
+require 'yaml'
 
-require "dea/bootstrap"
+require 'dea/bootstrap'
 
 require 'win32/daemon'
 include Win32
@@ -23,6 +23,11 @@ class DeaDaemon < Daemon
   def service_init
     begin
       config = YAML.load_file(ARGV[0])
+
+      # Ensure pid file is deleted or else service won't start
+      pid_file = config["pid_filename"]
+      FileUtils.rm_f(pid_file)
+
       @bootstrap = Dea::Bootstrap.new(config)
     rescue => e
       abort("ERROR: Failed loading config: #{e}")

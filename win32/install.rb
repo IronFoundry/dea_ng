@@ -15,6 +15,7 @@ cfg['local_route'] = cc_ip
 cfg['domain'] = cc_domain
 
 cfg['logging']['level'] = 'error'
+cfg['logging']['file'] = 'C:/IronFoudry/log/dea_ng.log'
 
 if nats_user.nil? or nats_pass.nil?
   cfg['nats_uri'] = "nats://#{cc_ip}:4222/"
