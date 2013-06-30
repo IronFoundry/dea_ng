@@ -4,8 +4,9 @@
 base_dir: C:/IronFoundry/dea_ng
 
 logging:
+  # level: debug2
   level: error
-  file: C:/IronFoundry/log/dea_ng.log
+  # file: C:/IronFoundry/log/dea_ng.log
 
 local_route: 192.168.170.141
 
@@ -24,7 +25,7 @@ only_production_apps: false
 # crash_block_usage_ratio_threshold: 0.98
 # crash_inode_usage_ratio_threshold: 0.98
 
-nats_uri: nats://192.168.170.131:4222/
+nats_uri: nats://192.168.170.132:4222/
 
 pid_filename: C:/IronFoundry/run/dea_ng.pid
 

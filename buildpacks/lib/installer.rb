@@ -30,17 +30,8 @@ module Buildpacks
 
     def command(command_name)
       cmd = File.join(path, 'bin', command_name)
-      # TODO ironfoundry
-      # if WINDOWS
-      #   case cmd
-      #     when File.exists?("#{cmd}.ps1")
-      #       cmd = "powershell.exe -ExecutionPolicy RemoteSigned -NoLogo -NoProfile -NonInteractive #{cmd}.ps1" # TODO ironfoundry
-      #     when File.exists?("#{cmd}.rb")
-      #       cmd = "ruby.exe #{cmd}.rb" # TODO ironfoundry
-      #   end
-      # end
       if WINDOWS
-        cmd = "ruby.exe #{cmd}" # TODO ironfoundry this requires ruby.exe in the PATH, assumes command_name is a ruby script
+        cmd = "ruby #{cmd}" # TODO ironfoundry - assume ruby. Should have smarter detection here.
       end
       "#{cmd} #{app_dir}"
     end

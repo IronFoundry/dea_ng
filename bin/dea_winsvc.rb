@@ -15,50 +15,50 @@ require 'win32/daemon'
 include Win32
 
 unless ARGV.size == 1
-  abort "Usage: dea_winsvc.rb <config path>"
+  abort("Usage: dea_winsvc.rb <config path>")
 end
 
-begin
-  $config = YAML.load_file(ARGV[0])
-rescue => e
-  abort "ERROR: Failed loading config: #{e}"
-end
+class DeaDaemon < Daemon
 
-Kernel.at_exit { 
-  Kernel.exit!(true) # NB: nothing else will stop the service.
-}
+  def service_init
+    begin
+      config = YAML.load_file(ARGV[0])
+      @bootstrap = Dea::Bootstrap.new(config)
+    rescue => e
+      abort("ERROR: Failed loading config: #{e}")
+    end
+  end
 
-class Daemon
-
-  def service_main
+  def service_main(*args)
 
     begin
-
-      @bootstrap = Dea::Bootstrap.new($config)
-
       EM.run {
         @bootstrap.setup
         @bootstrap.start
       }
-
     rescue => e
       exit!
     end
 
+    @bootstrap.shutdown
+
+    stop_em
   end
 
   def service_stop
-    stop
+    tries = 0
+    while (EM.reactor_running? and tries < 20)
+      stop_em
+      sleep 1
+      tries += 1
+    end
+    exit! # NB: due to bug(s) in win32-service, this is only way to stop service
   end
 
-  def service_shutdown
-    stop
-  end
-
-  def stop
-    @bootstrap.shutdown
+  def stop_em
+    EM.next_tick { EM.stop }
   end
 
 end
 
-Daemon.mainloop
+DeaDaemon.mainloop
