@@ -43,6 +43,8 @@ C:\>cd C:\IronFoundry\dea_ng\app\win32
 C:\IronFoundry\dea_ng\app\win32>install.cmd
 ```
 
+* As a double-check, ensure the `Local Service` user has access to `C:\IronFoundry` and `C:\Ruby193`.
+
 Installation from scratch:
 ------------------------------------------------------
 
