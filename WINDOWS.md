@@ -51,7 +51,7 @@ Installation from scratch:
 * Ensure that `git` is installed and in your `PATH`
 
 * Download a 32-bit Ruby 1.9.3 build from http://rubyinstaller.org/downloads/ and extract to `C:\Ruby193`. This directory may be changed,
-  but the examples in this document assume `ruby.exe` located at `C:\Ruby193\bin.ruby.exe`
+  but the examples in this document assume `ruby.exe` located at `C:\Ruby193\bin\ruby.exe`
 
 * Add `C:\Ruby193\bin` to the system `PATH`
 
@@ -71,15 +71,16 @@ Installation from scratch:
 C:\>cd \RubyDevKit
 
 C:\RubyDevKit>ruby dk.rb review
-Based upon the settings in the 'config.yml' file generated
-from running 'ruby dk.rb init' and any of your customizations,
-DevKit functionality will be injected into the following Rubies
-when you run 'ruby dk.rb install'.
+```
 
+* Based upon the settings in the 'config.yml' file generated from running `ruby dk.rb init` and any of your customizations,
+  DevKit functionality will be injected into the following Rubies when you run `ruby dk.rb install`.
+
+```
 C:/Ruby193
 
 C:\RubyDevKit>ruby dk.rb install
-[INFO] Updating convenience notice gem override for 'C:/Rubies/Ruby193'
+[INFO] Updating convenience notice gem override for 'C:/Ruby193'
 [INFO] Installing 'C:/Ruby193/lib/ruby/site_ruby/devkit.rb'
 ```
 
