@@ -16,9 +16,7 @@ from scratch](#installation-from-scratch) instructions to install everything man
 Installation package:
 -------------------------------------------------
 
-Download a zip archive with necessary Ruby binaries and other files from this location:
-
-TODO
+* First, download an archive (7z format) with necessary Ruby binaries and other files from the [Iron Foundry download page.](http://www.ironfoundry.org/download)
 
 * Ensure that git for Windows is installed and in your *system* `PATH`. Git for Windows can be [downloaded here](http://msysgit.github.io/). To confirm,
 open a `cmd` window post-installation and run this command:
@@ -35,7 +33,9 @@ C:\IronFoundry
 C:\Ruby193
 ```
 
-* After extracting, run the post-install script as an administrative user to include `C:\Ruby193\bin` in the system `PATH` and to install the
+* After extracting ensure that `C:\IronFoundry` and all descendents are owned by the `Administrators` group. Then, ensure that the `NT AUTHORITY\Local Service` user has Full Control access as well. This is the user that the Ruby DEA service runs as.
+
+* Then, run the post-install script as shown below as an administrative user to include `C:\Ruby193\bin` in the system `PATH` and to install the
 Ruby DEA as a Windows service. Once installation is complete the service will be set to run automatically with a delayed start.
 
 ```
