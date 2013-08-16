@@ -1,10 +1,16 @@
 # See src/lib/dea/config.rb for optional config values.
 
 # Base directory for dea, application directories, dea temp files, etc. are all relative to this.
-base_dir: /tmp/dea_ng
+base_dir: C:/IronFoundry/dea_ng
 
 logging:
-  level: debug
+  # level: debug2
+  level: error
+  # file: C:/IronFoundry/log/dea_ng.log
+
+local_route: 192.168.170.141
+
+domain: vcap.me
 
 resources:
   memory_mb: 2048
@@ -16,28 +22,31 @@ resources:
 # production apps. (default: false)
 only_production_apps: false
 
-nats_uri: nats://localhost:4222/
+# crash_block_usage_ratio_threshold: 0.98
+# crash_inode_usage_ratio_threshold: 0.98
 
-pid_filename: /tmp/dea_ng.pid
+nats_uri: nats://192.168.170.132:4222/
 
-warden_socket: file:///tmp/warden.sock
+pid_filename: C:/IronFoundry/run/dea_ng.pid
 
-evacuation_delay_secs: 10
+warden_socket: tcp://localhost:4444
+
+evacuation_delay_secs: 5
 
 index: 0
 
 staging:
   enabled: true
   platform_config:
-    cache: /var/vcap/data/stager/package_cache/ruby
+    cache: C:/IronFoundry/package_cache/ruby
   environment:
-    PATH: /usr/local/ruby/bin
-    BUILDPACK_CACHE: /var/vcap/packages/buildpack_cache
+    PATH: C:\Ruby193\bin # NB: backslashes
+    BUILDPACK_CACHE: C:/IronFoundry/buildpack_cache
   memory_limit_mb: 1024
   disk_limit_mb: 2048
   max_staging_duration: 900 # 15 minutes
 
-dea_ruby: /usr/bin/ruby
+dea_ruby: C:/Ruby193/bin/ruby.exe
 
 # For Go-based directory server
 directory_server:
@@ -46,10 +55,10 @@ directory_server:
   file_api_port: 1234
   streaming_timeout: 10
   logging:
-    level: info
+    level: all
 
 stacks:
-  - lucid64
+  - mswin-clr
 
 # Hook scripts for droplet start/stop
 # hooks:

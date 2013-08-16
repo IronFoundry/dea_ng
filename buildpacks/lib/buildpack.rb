@@ -143,6 +143,7 @@ module Buildpacks
     end
 
     def clone_buildpack(buildpack_url)
+      # ironfoundry TODO why /tmp ???
       buildpack_path = "/tmp/buildpacks/#{File.basename(buildpack_url)}"
       ok = system("git clone --recursive #{buildpack_url} #{buildpack_path}")
       raise "Failed to git clone buildpack" unless ok
@@ -172,6 +173,7 @@ module Buildpacks
     end
 
     def start_command
+      # environment["meta"]["command"] comes from plugin_config in DEA staging directory
       return environment["meta"]["command"] if environment["meta"] && environment["meta"]["command"]
       procfile.web ||
         release_info.fetch("default_process_types", {})["web"] ||
@@ -179,6 +181,7 @@ module Buildpacks
     end
 
     def startup_script
+      # the contents of .profile.d are created via the buildpack
       generate_startup_script(running_environment_variables) do
         script_content = <<-BASH
 unset GEM_PATH

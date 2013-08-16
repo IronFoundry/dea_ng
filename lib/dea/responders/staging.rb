@@ -1,4 +1,6 @@
+require "vcap/common"
 require "dea/staging_task"
+require "dea/win_staging_task"
 
 module Dea::Responders
   class Staging
@@ -35,7 +37,13 @@ module Dea::Responders
       logger = logger_for_app(message.data["app_id"])
       logger.info("Got staging request with #{message.data.inspect}")
 
-      task = Dea::StagingTask.new(bootstrap, dir_server, message.data, logger)
+      # TODO ironfoundry WinStagingTask - factory?
+      task = nil
+      if VCAP::WINDOWS
+        task = Dea::WinStagingTask.new(bootstrap, dir_server, message.data, logger)
+      else
+        task = Dea::StagingTask.new(bootstrap, dir_server, message.data, logger)
+      end
       staging_task_registry.register(task)
 
       notify_setup_completion(message, task)

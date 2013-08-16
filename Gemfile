@@ -1,6 +1,6 @@
 source "https://rubygems.org"
 
-gem "eventmachine"
+gem 'eventmachine', '>= 1.0.3'
 gem "em-http-request"
 
 gem "em-warden-client", :git => "https://github.com/cloudfoundry/warden.git"
@@ -14,14 +14,15 @@ gem "thin"
 gem "yajl-ruby", :require => %w[yajl yajl/json_gem]
 gem "grape", :git => "https://github.com/intridea/grape.git"
 
-gem "vcap_common", :git => "https://github.com/cloudfoundry/vcap-common.git"
-gem "steno", "~> 1.1.0", :git => "https://github.com/cloudfoundry/steno.git"
+gem "vcap_common", :git => "https://github.com/IronFoundry/vcap-common.git", :branch => "ironfoundry"
 
-gem "uuidtools", "~> 2.1.2"
-gem "nokogiri", ">= 1.4.4"
+gem "steno", :git => "https://github.com/IronFoundry/steno.git", :branch => "ironfoundry"
+
 gem "vmstat"
 
 gem "sys-filesystem"
+
+gem "win32-service"
 
 group :test do
   gem "timecop"

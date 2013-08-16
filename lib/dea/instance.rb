@@ -418,18 +418,27 @@ module Dea
       end
     end
 
+    def promise_setup_environment_script
+      "cd / && mkdir -p home/vcap/app && chown vcap:vcap home/vcap/app && ln -s home/vcap/app /app"
+    end
+
     def promise_setup_environment
       Promise.new do |p|
-        script = "cd / && mkdir -p home/vcap/app && chown vcap:vcap home/vcap/app && ln -s home/vcap/app /app"
+        script = promise_setup_environment_script
+
         promise_warden_run(:app, script, true).resolve
 
         p.deliver
       end
     end
 
+    def promise_extract_droplet_script(droplet_path)
+      "tar -C /home/vcap -xzf #{droplet_path}"
+    end
+
     def promise_extract_droplet
       Promise.new do |p|
-        script = "cd /home/vcap/ && tar zxf #{droplet.droplet_path}"
+        script = promise_extract_droplet_script(droplet.droplet_path)
 
         promise_warden_run(:app, script).resolve
 
@@ -437,8 +446,7 @@ module Dea
       end
     end
 
-    def promise_start
-      Promise.new do |p|
+    def promise_start_script
         script = []
 
         script << "umask 077"
@@ -457,10 +465,16 @@ module Dea
 
         script << startup
         script << "exit"
+        script.join("\n")
+    end
+
+    def promise_start
+      Promise.new do |p|
+        script = promise_start_script
 
         request = ::Warden::Protocol::SpawnRequest.new
         request.handle = attributes["warden_handle"]
-        request.script = script.join("\n")
+        request.script = script
 
         request.rlimits = ::Warden::Protocol::ResourceLimits.new
         request.rlimits.nofile = self.file_descriptor_limit
@@ -474,19 +488,24 @@ module Dea
       end
     end
 
+    def build_promise_exec_hook_script(script_path)
+      script = []
+      script << "umask 077"
+      env = Env.new(self)
+      env.env.each do |k, v|
+        script << "export %s=%s" % [k, v]
+      end
+      script << File.read(script_path)
+      script << "exit"
+      script
+    end
+
     def promise_exec_hook_script(key)
       Promise.new do |p|
         if bootstrap.config['hooks'] && bootstrap.config['hooks'][key]
           script_path = bootstrap.config['hooks'][key]
           if File.exist?(script_path)
-            script = []
-            script << "umask 077"
-            env = Env.new(self)
-            env.env.each do |k, v|
-              script << "export %s=%s" % [k, v]
-            end
-            script << File.read(script_path)
-            script << "exit"
+            script = build_promise_exec_hook_script(script_path)
             promise_warden_run(:app, script.join("\n")).resolve
           else
             log(:warn, "droplet.hook-script.missing", :hook => key, :script_path => script_path)
@@ -522,6 +541,8 @@ module Dea
         # instance crashes before the health check completes.
         link
 
+        log(:debug2, "droplet.starting - before promise_health_check")
+
         if promise_health_check.resolve
           promise_state(State::STARTING, State::RUNNING).resolve
           log(:info, "droplet.healthy")
@@ -530,6 +551,8 @@ module Dea
           log(:warn, "droplet.unhealthy")
           p.fail("App instance failed health check")
         end
+
+        log(:debug2, "droplet.starting - after promise_health_check")
 
         p.deliver
       end
@@ -594,11 +617,15 @@ module Dea
       end
     end
 
+    def promise_copy_out_src_dir
+      "/home/vcap"
+    end
+
     def promise_copy_out
       Promise.new do |p|
         new_instance_path = File.join(config.crashes_path, instance_id)
         new_instance_path = File.expand_path(new_instance_path)
-        copy_out_request("/home/vcap/", new_instance_path)
+        copy_out_request(promise_copy_out_src_dir, new_instance_path)
 
         attributes["instance_path"] = new_instance_path
 
@@ -839,6 +866,7 @@ module Dea
     end
 
     def container_relative_path(root, *parts)
+      log(:debug2, "container_relative_path(#{root}, #{parts.inspect})")
       # This can be removed once warden's wsh branch is merged to master
       if File.directory?(File.join(root, "rootfs"))
         return File.join(root, "rootfs", "home", "vcap", *parts)

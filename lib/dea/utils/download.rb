@@ -30,18 +30,48 @@ class Download
     file.binmode
     sha1 = Digest::SHA1.new
 
-    http = EM::HttpRequest.new(uri).get
+    http = EM::HttpRequest.new(uri, :connect_timeout => 15, :inactivity_timeout => 30).get
+
+    stream_err = nil
 
     http.stream do |chunk|
-      file << chunk
-      sha1 << chunk
+      tries = 0
+      begin
+        file << chunk
+      rescue Errno::EBADF => err
+        # ironfoundry TODO - this happens with some frequency in windows
+        # trapping here to prevent DEA from crashing
+        stream_err = err
+        if tries < 2
+          logger.error("Errno::EBADF in stream to file - retrying (closed: #{file.closed?})")
+          file = Tempfile.new("droplet", destination_dir)
+          file.binmode
+          tries += 1
+          retry
+        else
+          logger.error("Errno::EBADF in stream to file - DONE RETRYING")
+        end
+      rescue => err
+        stream_err = err
+      end
+
+      begin
+        sha1 << chunk
+      rescue Errno::EBADF => err
+        # trapping here to prevent DEA from crashing
+        stream_err = err
+        logger.error("Errno::EBADF in stream to sha1!")
+      rescue => err
+        stream_err = err
+      end
     end
 
     cleanup = lambda do |&inner|
-      file.close
-
       begin
-        inner.call
+        file.close
+        inner.call(nil)
+      rescue => err
+        inner.call(err)
       ensure
         FileUtils.rm_f(file.path)
       end
@@ -50,9 +80,10 @@ class Download
     context = { :droplet_uri => uri }
 
     http.errback do
-      cleanup.call do
-        error = DownloadError.new("Response status: unknown", context)
-        logger.warn(error.message, error.data)
+      cleanup.call do |cleanup_err|
+        context = { :cleanup_err => cleanup_err, :stream_err => stream_err }
+        error = DownloadError.new("Response status: unknown. Error: #{http.error} Http: #{http.inspect}", context)
+        logger.error(error.message, error.data)
         blk.call(error)
       end
     end

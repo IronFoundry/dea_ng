@@ -11,4 +11,5 @@ tmp/*
 !.gitkeep
 spec/fixtures/**/.git
 chef/tmp
+tags
 *.iml

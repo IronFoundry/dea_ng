@@ -1,6 +1,9 @@
 require "open3"
 
 module Buildpacks
+
+  WINDOWS = RbConfig::CONFIG['host_os'] =~ /mswin|mingw/
+
   class Installer < Struct.new(:path, :app_dir, :cache_dir)
     def detect
       @detect_output, status = Open3.capture2 command('detect')
@@ -25,7 +28,12 @@ module Buildpacks
     private
 
     def command(command_name)
-      "#{path}/bin/#{command_name} #{app_dir}"
+      cmd = File.join(path, 'bin', command_name)
+      if WINDOWS
+        cmd = "ruby #{cmd}" # TODO ironfoundry - assume ruby. Should have smarter detection here.
+      end
+      "#{cmd} #{app_dir}"
     end
   end
 end
+
