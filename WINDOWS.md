@@ -80,22 +80,19 @@ Installation from scratch:
 
 * Open a `cmd` window to validate dev kit installation and enable dev kit:
 
-```
-C:\>cd \RubyDevKit
-
-C:\RubyDevKit>ruby dk.rb review
-```
-
-* Based upon the settings in the 'config.yml' file generated from running `ruby dk.rb init` and any of your customizations,
-  DevKit functionality will be injected into the following Rubies when you run `ruby dk.rb install`.
-
-```
-C:/Ruby193
-
-C:\RubyDevKit>ruby dk.rb install
-[INFO] Updating convenience notice gem override for 'C:/Ruby193'
-[INFO] Installing 'C:/Ruby193/lib/ruby/site_ruby/devkit.rb'
-```
+        C:\>cd \RubyDevKit
+        
+        C:\RubyDevKit>ruby dk.rb review
+        Based upon the settings in the 'config.yml' file generated
+        from running 'ruby dk.rb init' and any of your customizations,
+        DevKit functionality will be injected into the following Rubies
+        when you run 'ruby dk.rb install'.
+        
+        C:/Ruby193
+        
+        C:\RubyDevKit>ruby dk.rb install
+        [INFO] Updating convenience notice gem override for 'C:/Rubies/Ruby193'
+        [INFO] Installing 'C:/Ruby193/lib/ruby/site_ruby/devkit.rb'
 
 * Before updating and installing Ruby gems, you may want to create an ASCII text `.gemrc` file in your home directory
 (`C:\Users\username\.gemrc`) with this content. It will save space and time by blocking installation of rdoc and ri files:
