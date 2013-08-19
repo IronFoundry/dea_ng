@@ -34,27 +34,21 @@ Installation package:
 * Ensure that git for Windows is installed and in your *system* `PATH`. Git for Windows can be [downloaded here](http://msysgit.github.io/). To confirm,
 open a `cmd` window post-installation and run this command:
 
-```
-C:\>git --version
-git version 1.8.3.msysgit.0
-```
+        C:\>git --version
+        git version 1.8.3.msysgit.0
 
 * Extract the downloaded archive to the `C:\` drive, which will add the following top-level directories:
 
-```
-C:\IronFoundry
-C:\Ruby193
-```
+        C:\IronFoundry
+        C:\Ruby193
 
 * After extracting ensure that `C:\IronFoundry` and all descendents are owned by the `Administrators` group. Then, ensure that the `NT AUTHORITY\Local Service` user has Full Control access as well. This is the user that the Ruby DEA service runs as.
 
 * Then, run the post-install script as shown below as an administrative user to include `C:\Ruby193\bin` in the system `PATH` and to install the
 Ruby DEA as a Windows service. Once installation is complete the service will be set to run automatically with a delayed start.
 
-```
-C:\>cd C:\IronFoundry\dea_ng\app\win32
-C:\IronFoundry\dea_ng\app\win32>install.cmd
-```
+        C:\>cd C:\IronFoundry\dea_ng\app\win32
+        C:\IronFoundry\dea_ng\app\win32>install.cmd
 
 * As a double-check, ensure the `Local Service` user has access to `C:\IronFoundry` and `C:\Ruby193`.
 
@@ -73,10 +67,8 @@ Installation from scratch:
 
 * Create the ASCII text file `C:\RubyDevKit\config.yml` with the following contents:
 
-```
----
-- C:/Ruby193
-```
+        ---
+        - C:/Ruby193
 
 * Open a `cmd` window to validate dev kit installation and enable dev kit:
 
@@ -97,99 +89,78 @@ Installation from scratch:
 * Before updating and installing Ruby gems, you may want to create an ASCII text `.gemrc` file in your home directory
 (`C:\Users\username\.gemrc`) with this content. It will save space and time by blocking installation of rdoc and ri files:
 
-```
-install: --no-rdoc --no-ri
-update:  --no-rdoc --no-ri
-```
+        install: --no-rdoc --no-ri
+        update:  --no-rdoc --no-ri
 
 * Update and install some gems:
 
-```
-C:\>gem update --system
-C:\>gem install bundler
-```
+        C:\>gem update --system
+        C:\>gem install bundler
 
 * Download [`curl-7.31.0-devel-mingw32.zip` curl development libraries](http://curl.haxx.se/dlwiz/?type=lib&os=Win32&flav=-) and extract to a
 directory on your system - `C:\tmp` in this example. Then, use the following command to install the `patron` gem using this download:
 
-```
-C:\>gem install patron -v '0.4.18' --platform=x86-mingw32 -- -- --with-curl-lib=C:\tmp\curl-7.31.0-devel-mingw32\bin --with-curl-include=C:\tmp\curl-7.31.0-devel-mingw32\include
-Fetching: patron-0.4.18.gem (100%)
-Temporarily enhancing PATH to include DevKit...
-Building native extensions with: '-- --with-curl-lib=C:\tmp\curl-7.31.0-devel-mingw32\bin --with-curl-include=C:\tmp\curl-7.31.0-devel-mingw32\include'
-This could take a while...
-Successfully installed patron-0.4.18
-1 gem installed
-```
+        C:\>gem install patron -v '0.4.18' --platform=x86-mingw32 -- -- --with-curl-lib=C:\tmp\curl-7.31.0-devel-mingw32\bin --with-curl-include=C:\tmp\curl-7.31.0-devel-mingw32\include
+        Fetching: patron-0.4.18.gem (100%)
+        Temporarily enhancing PATH to include DevKit...
+        Building native extensions with: '-- --with-curl-lib=C:\tmp\curl-7.31.0-devel-mingw32\bin --with-curl-include=C:\tmp\curl-7.31.0-devel-mingw32\include'
+        This could take a while...
+        Successfully installed patron-0.4.18
+        1 gem installed
 
 * Create the required directory structure using the following set of commands, which may be saved as a batch file:
 
-```
-mkdir C:\IronFoundry\buildpack_cache
-mkdir C:\IronFoundry\dea_ng\app
-mkdir C:\IronFoundry\dea_ng\crashes
-mkdir C:\IronFoundry\dea_ng\db
-mkdir C:\IronFoundry\dea_ng\droplets
-mkdir C:\IronFoundry\dea_ng\instances
-mkdir C:\IronFoundry\dea_ng\staging
-mkdir C:\IronFoundry\dea_ng\tmp
-mkdir C:\IronFoundry\log
-mkdir C:\IronFoundry\package_cache
-mkdir C:\IronFoundry\run
-mkdir C:\IronFoundry\warden\containers
-```
+        mkdir C:\IronFoundry\buildpack_cache
+        mkdir C:\IronFoundry\dea_ng\app
+        mkdir C:\IronFoundry\dea_ng\crashes
+        mkdir C:\IronFoundry\dea_ng\db
+        mkdir C:\IronFoundry\dea_ng\droplets
+        mkdir C:\IronFoundry\dea_ng\instances
+        mkdir C:\IronFoundry\dea_ng\staging
+        mkdir C:\IronFoundry\dea_ng\tmp
+        mkdir C:\IronFoundry\log
+        mkdir C:\IronFoundry\package_cache
+        mkdir C:\IronFoundry\run
+        mkdir C:\IronFoundry\warden\containers
 
 * Check out the `dea_ng` source. Note that this command will switch to the reqired `ironfoundry` branch as well as initialize submodules:
 
-```
-C:\tmp>cd \IronFoundry\dea_ng
-C:\IronFoundry\dea_ng>git clone --branch ironfoundry --recursive https://github.com/IronFoundry/dea_ng.git app
-```
+        C:\tmp>cd \IronFoundry\dea_ng
+        C:\IronFoundry\dea_ng>git clone --branch ironfoundry --recursive https://github.com/IronFoundry/dea_ng.git app
 
 * Install required gems for `dea_ng` (extra output truncated):
 
-```
-C:\IronFoundry\dea_ng>cd app
-C:\IronFoundry\dea_ng\app>bundle install
-```
+        C:\IronFoundry\dea_ng>cd app
+        C:\IronFoundry\dea_ng\app>bundle install
 
 * You must install eventmachine from source. Clone the `eventmachine` source from the Iron Foundry organization and build from the `ironfoundry` branch (extra output truncated):
 
-```
-C:\tmp>git clone --branch ironfoundry https://github.com/IronFoundry/eventmachine.git
-Cloning into 'eventmachine'...
-C:\tmp>cd eventmachine
-C:\tmp\eventmachine>gem uninstall eventmachine # Say 'Yes' to all versions here!
-C:\tmp\eventmachine>gem build eventmachine.gemspec
-C:\tmp\eventmachine>gem install eventmachine-1.0.3.gem
-```
-
+        C:\tmp>git clone --branch ironfoundry https://github.com/IronFoundry/eventmachine.git
+        Cloning into 'eventmachine'...
+        C:\tmp>cd eventmachine
+        C:\tmp\eventmachine>gem uninstall eventmachine # Say 'Yes' to all versions here!
+        C:\tmp\eventmachine>gem build eventmachine.gemspec
+        C:\tmp\eventmachine>gem install eventmachine-1.0.3.gem
 
 * Set up the DEA as a windows service and add some firewall rules:
 
-```
-C:\>sc create dea_winsvc start= delayed-auto binPath= "C:\Ruby193\bin\rubyw.exe -C C:\IronFoundry\dea_ng\app\bin dea_winsvc.rb C:\IronFoundry\dea_ng\app\config\dea_mswin-clr.yml"
-C:\>sc failure dea_winsvc reset= 86400 actions= restart/600000/restart/600000/restart/600000
-C:\>netsh advfirewall firewall add rule name=rubyw-193-Allow dir=in action=allow program=C:\Ruby193\bin\rubyw.exe
-C:\>netsh advfirewall firewall add rule name=rubyw-193-out-allow dir=out action=allow program=C:\Ruby193\bin\rubyw.exe
-```
+        C:\>sc create dea_winsvc start= delayed-auto binPath= "C:\Ruby193\bin\rubyw.exe -C C:\IronFoundry\dea_ng\app\bin dea_winsvc.rb C:\IronFoundry\dea_ng\app\config\dea_mswin-clr.yml"
+        C:\>sc failure dea_winsvc reset= 86400 actions= restart/600000/restart/600000/restart/600000
+        C:\>netsh advfirewall firewall add rule name=rubyw-193-Allow dir=in action=allow program=C:\Ruby193\bin\rubyw.exe
+        C:\>netsh advfirewall firewall add rule name=rubyw-193-out-allow dir=out action=allow program=C:\Ruby193\bin\rubyw.exe
 
 * Edit these sections in the DEA `C:\IronFoundry\dea_ng\app\config\dea_mswin-clr.yml` file:
 
-```
-logging:
-  level: error # set to "debug2" to see all messages
-  file: C:/IronFoundry/log/dea_ng.log
+        logging:
+          level: error # set to "debug2" to see all messages
+          file: C:/IronFoundry/log/dea_ng.log
 
-local_route: 192.168.1.1 # set to your cloud controller IP
+        local_route: 192.168.1.1 # set to your cloud controller IP
 
-domain: vcap.me # set to your domain
+        domain: vcap.me # set to your domain
 
-nats_uri: # set to 'nats://NATS_IP:4222' or 'nats://USER:PASSWORD@NATS_IP:4222'
-```
+        nats_uri: # set to 'nats://NATS_IP:4222' or 'nats://USER:PASSWORD@NATS_IP:4222'
 
 * Start up the DEA:
 
-```
-C:\>sc start dea_winsvc
-```
+        C:\>sc start dea_winsvc
