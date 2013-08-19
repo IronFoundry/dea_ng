@@ -65,12 +65,12 @@ module Dea
           begin
             uri = URI.parse(socket)
             if uri.scheme == 'file'
-               connection = ::EM.connect_unix_domain(uri.path, klass)
+              connection = ::EM.connect_unix_domain(uri.path, klass)
             else
               connection = ::EM.connect(uri.host, uri.port, klass)
             end
           rescue Exception => err
-            logger.debug "URI::Parse unsuccessful, task.warden.socket: #{socket}"
+            logger.debug("URI::Parse unsuccessful, task.warden.socket: #{socket}")
 
             begin
               connection = ::EM.connect_unix_domain(socket, klass)

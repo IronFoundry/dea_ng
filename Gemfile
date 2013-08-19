@@ -3,7 +3,7 @@ source "https://rubygems.org"
 gem 'eventmachine', '>= 1.0.3'
 gem "em-http-request"
 
-gem "em-warden-client", :git => "https://github.com/cloudfoundry/warden.git"
+gem "em-warden-client", :git => "https://github.com/IronFoundry/warden.git", :branch => 'ironfoundry'
 gem "warden-client", :git => "https://github.com/cloudfoundry/warden.git"
 gem "warden-protocol", :git => "https://github.com/cloudfoundry/warden.git"
 

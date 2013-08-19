@@ -30,13 +30,19 @@ GIT
       yajl-ruby
 
 GIT
-  remote: https://github.com/cloudfoundry/warden.git
-  revision: 609bbdfa0ea796ff0c140e937d475fa8081388fb
+  remote: https://github.com/IronFoundry/warden.git
+  revision: 10e2ffd422d1165122e4c4ebb56ba4af1f2a2c5e
+  branch: ironfoundry
   specs:
     em-warden-client (0.1.1)
       eventmachine
       warden-client
       warden-protocol (>= 0.0.9)
+
+GIT
+  remote: https://github.com/cloudfoundry/warden.git
+  revision: 223976f95927b78b134de67110edf7e5c827d7f4
+  specs:
     warden-client (0.1.0)
       warden-protocol (~> 0.1.0)
     warden-protocol (0.1.3)
