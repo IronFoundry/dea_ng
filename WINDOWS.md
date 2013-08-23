@@ -57,7 +57,7 @@ Installation from scratch:
 
 * Ensure that `git` is installed and in your `PATH`
 
-* Download a 32-bit Ruby 1.9.3 build from http://rubyinstaller.org/downloads/ and extract to `C:\Ruby193`. This directory may be changed,
+* Download a 32-bit Ruby 1.9.3 build from http://rubyinstaller.org/downloads/ and extract to `C:\Ruby193`. As of August 2013, Ruby 2.0+ wil not work.  This directory may be changed,
   but the examples in this document assume `ruby.exe` located at `C:\Ruby193\bin\ruby.exe`
 
 * Add `C:\Ruby193\bin` to the system `PATH`
@@ -65,14 +65,16 @@ Installation from scratch:
 * Download a 32-bit Ruby Dev Kit from http://rubyinstaller.org/downloads/ and extract to `C:\RubyDevKit`. This directory may be changed, but the
   examples in this document assume this location. There is no need to add this to the `PATH`.
 
-* Create the ASCII text file `C:\RubyDevKit\config.yml` with the following contents:
-
-        ---
-        - C:/Ruby193
-
-* Open a `cmd` window to validate dev kit installation and enable dev kit:
+* Open a `cmd` window to initialize and validate dev kit installation and enable dev kit:
 
         C:\>cd \RubyDevKit
+        
+        C:\RubyDevKit>ruby dk.rb init
+        [INFO] found RubyInstaller v1.9.3 at C:/Ruby193
+
+        Initialization complete! Please review and modify the auto-generated
+        'config.yml' file to ensure it contains the root directories to all
+        of the installed Rubies you want enhanced by the DevKit.
         
         C:\RubyDevKit>ruby dk.rb review
         Based upon the settings in the 'config.yml' file generated
@@ -97,10 +99,10 @@ Installation from scratch:
         C:\>gem update --system
         C:\>gem install bundler
 
-* Download [`curl-7.31.0-devel-mingw32.zip` curl development libraries](http://curl.haxx.se/dlwiz/?type=lib&os=Win32&flav=-) and extract to a
+* Download [`curl-7.32.0-devel-mingw32.zip` curl development libraries](http://curl.haxx.se/dlwiz/?type=lib&os=Win32&flav=-) and extract to a
 directory on your system - `C:\tmp` in this example. Then, use the following command to install the `patron` gem using this download:
 
-        C:\>gem install patron -v '0.4.18' --platform=x86-mingw32 -- -- --with-curl-lib=C:\tmp\curl-7.31.0-devel-mingw32\bin --with-curl-include=C:\tmp\curl-7.31.0-devel-mingw32\include
+        C:\>gem install patron -v '0.4.18' --platform=x86-mingw32 -- -- --with-curl-lib=C:\tmp\curl-7.32.0-devel-mingw32\bin --with-curl-include=C:\tmp\curl-7.32.0-devel-mingw32\include
         Fetching: patron-0.4.18.gem (100%)
         Temporarily enhancing PATH to include DevKit...
         Building native extensions with: '-- --with-curl-lib=C:\tmp\curl-7.31.0-devel-mingw32\bin --with-curl-include=C:\tmp\curl-7.31.0-devel-mingw32\include'
@@ -108,7 +110,7 @@ directory on your system - `C:\tmp` in this example. Then, use the following com
         Successfully installed patron-0.4.18
         1 gem installed
 
-* Create the required directory structure using the following set of commands, which may be saved as a batch file:
+* Create the required directory structure using the following set of commands, which may be saved as a batch file.  The base path `C:\IronFoundry` can be changed but the examples in this document and the configuration paths in dea_mswin-clr.yml assume this location.
 
         mkdir C:\IronFoundry\buildpack_cache
         mkdir C:\IronFoundry\dea_ng\app
@@ -142,10 +144,10 @@ directory on your system - `C:\tmp` in this example. Then, use the following com
         C:\tmp\eventmachine>gem build eventmachine.gemspec
         C:\tmp\eventmachine>gem install eventmachine-1.0.3.gem
 
-* Set up the DEA as a windows service and add some firewall rules:
+* Set up the DEA as a windows service and add some firewall rules (needs elevated privileges):
 
-        C:\>sc create dea_winsvc start= delayed-auto binPath= "C:\Ruby193\bin\rubyw.exe -C C:\IronFoundry\dea_ng\app\bin dea_winsvc.rb C:\IronFoundry\dea_ng\app\config\dea_mswin-clr.yml"
-        C:\>sc failure dea_winsvc reset= 86400 actions= restart/600000/restart/600000/restart/600000
+        C:\>sc.exe create dea_winsvc start= delayed-auto binPath= "C:\Ruby193\bin\rubyw.exe -C C:\IronFoundry\dea_ng\app\bin dea_winsvc.rb C:\IronFoundry\dea_ng\app\config\dea_mswin-clr.yml"
+        C:\>sc.exe failure dea_winsvc reset= 86400 actions= restart/600000/restart/600000/restart/600000
         C:\>netsh advfirewall firewall add rule name=rubyw-193-Allow dir=in action=allow program=C:\Ruby193\bin\rubyw.exe
         C:\>netsh advfirewall firewall add rule name=rubyw-193-out-allow dir=out action=allow program=C:\Ruby193\bin\rubyw.exe
 
