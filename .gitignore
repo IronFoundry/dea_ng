@@ -11,3 +11,4 @@ tmp/*
 spec/fixtures/**/.git
 chef/tmp
 *.iml
+.hg
