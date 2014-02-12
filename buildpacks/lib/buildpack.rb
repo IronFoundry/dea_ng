@@ -64,7 +64,7 @@ module Buildpacks
     end
 
     def copy_source_files
-      system "cp -a #{File.join(source_directory, ".")} #{app_dir}"
+      FileUtils.cp_a(File.join(source_directory, "."), app_dir)
       FileUtils.chmod_R(0744, app_dir)
     end
 
