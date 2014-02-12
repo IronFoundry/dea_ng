@@ -12,9 +12,7 @@ describe FileUtils do
 
       FileUtils.cp_a "fakesrcdir", "fakedestdir/app"
     end
-  end
 
-  describe "#cp_a on windows", windows_only:true do
     it "Copies files using FileUtils" do
       stub_const('PlatformCompat::WINDOWS', true)
       FileUtils.should_receive(:cp_r).with("fakesrcdir", "fakedestdir/app", { :preserve => true })

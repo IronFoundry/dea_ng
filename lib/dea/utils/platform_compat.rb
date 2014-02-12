@@ -2,6 +2,7 @@ require 'rbconfig'
 
 module PlatformCompat
   WINDOWS = (RbConfig::CONFIG['host_os'] =~ /mswin|mingw|cygwin/)
+  WINDOWS_SIGNALS = %W[TERM INT SIGTERM SIGINT].freeze
   def self.windows?
     WINDOWS
   end
@@ -11,6 +12,14 @@ module PlatformCompat
       "Windows"
     else
       "Linux"
+    end
+  end
+
+  def self.signal_supported?(signal)
+    if windows?
+      WINDOWS_SIGNALS.include?(signal)
+    else
+      true
     end
   end
 end
