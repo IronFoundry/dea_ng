@@ -1,18 +1,28 @@
 require 'rbconfig'
 
 module PlatformCompat
-  WINDOWS = (RbConfig::CONFIG['host_os'] =~ /mswin|mingw|cygwin/)
   WINDOWS_SIGNALS = %W[TERM INT SIGTERM SIGINT].freeze
+
+  def self.detect_platform
+    (RbConfig::CONFIG['host_os'] =~ /mswin|mingw|cygwin/) ? :Windows : :Linux
+  end
+
+  @platform = detect_platform
+
   def self.windows?
-    WINDOWS
+    @platform == :Windows
+  end
+
+  def self.linux?
+    @platform == :Linux
+  end
+
+  def self.platform
+    @platform
   end
 
   def self.platform_name
-    if windows?
-      "Windows"
-    else
-      "Linux"
-    end
+    platform.to_s
   end
 
   def self.signal_supported?(signal)
@@ -21,6 +31,17 @@ module PlatformCompat
     else
       true
     end
+  end
+
+  def self.to_env(envs)
+    envs.map do |(key, value)|
+      if windows?
+        %Q{$env:%s='%s'\n} % [key, value]
+      else
+        %Q{export %s="%s";\n} % [key, value.to_s.gsub('"', '\"')]
+      end
+
+    end.join
   end
 end
 
@@ -37,7 +58,7 @@ class Class
     klass = self
     idx = klass.name.rindex("::")
     idx = idx ? idx + 2 : 0
-    platformKlassName = klass.name.insert(idx, PlatformCompat::platform_name)
+    platformKlassName = klass.name.insert(idx, PlatformCompat.platform_name)
 
     klass.class_eval %Q{
      def self.new(*args)

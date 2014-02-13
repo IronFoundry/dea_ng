@@ -85,3 +85,17 @@ alias and_by by
 def fixture(path)
   File.expand_path("../fixtures/#{path}", __FILE__)
 end
+
+module PlatformCompat
+  # Useful for testing, but not really safe or useful for production code
+  def self.as_platform(platform, &block)
+    old_platform = @platform
+    @platform = platform
+
+    begin
+      block.call
+    ensure
+      @platform = old_platform
+    end
+  end
+end
