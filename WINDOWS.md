@@ -149,8 +149,9 @@ directory on your system - `C:\tmp` in this example. Then, use the following com
     * Set the GOPATH environment variable to C:\IronFoundry\dea_ng\app\go (In PowerShell: $env:GOPATH=$PWD if you are in the go directory)
     * Build the directory server
 
-            C:\IronFoundry\dea_ng\app\go>go build .\src\winrunner
-
+            C:\IronFoundry\dea_ng\app\go\src\winrunner>go build
+    * Copy the winrunner.exe to C:\IronFoundry\dea_ng\app\go
+    
 * Set up the Directory Server as a windows service and add some firewall rules (needs elevated privileges):
 
         C:\>C:\IronFoundry\dea_ng\app\go\winrunner.exe install "C:\IronFoundry\dea_ng\app\config\dea_mswin-clr.yml"
