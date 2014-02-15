@@ -96,7 +96,9 @@ describe Dea::StagingTask do
 
         empty_streams
       end
-      staging.promise_stage.resolve
+      PlatformCompat.as_platform :Linux do
+        staging.promise_stage.resolve
+      end
     end
 
     it "logs to the loggregator" do
@@ -119,14 +121,18 @@ describe Dea::StagingTask do
 
           empty_streams
         end
-        staging.promise_stage.resolve
+        PlatformCompat.as_platform :Linux do
+          staging.promise_stage.resolve
+        end
       end
 
       it "copes with quotes" do
         staging.container.should_receive(:run_script) do |_, cmd|
           expect(cmd).to include(%Q{export FOO="z'y\\"d";})
         end.and_return(empty_streams)
-        staging.promise_stage.resolve
+        PlatformCompat.as_platform :Linux do
+          staging.promise_stage.resolve
+        end
       end
 
       it "copes with blank" do
@@ -135,14 +141,18 @@ describe Dea::StagingTask do
 
           empty_streams
         end
-        staging.promise_stage.resolve
+        PlatformCompat.as_platform :Linux do
+          staging.promise_stage.resolve
+        end
       end
 
       it "copes with equal sign" do
         staging.container.should_receive(:run_script) do |_, cmd|
           expect(cmd).to include(%Q{export BAZ="foo=baz";})
         end.and_return(empty_streams)
-        staging.promise_stage.resolve
+        PlatformCompat.as_platform :Linux do
+          staging.promise_stage.resolve
+        end
       end
     end
 

@@ -17,7 +17,7 @@ gem "yajl-ruby", require: %w[yajl yajl/json_gem]
 gem "grape", git: "https://github.com/intridea/grape.git"
 
 gem "vcap_common", git: "https://github.com/cloudfoundry/vcap-common.git"
-gem "steno", "~> 1.2.2", git: "https://github.com/cloudfoundry/steno.git"
+gem 'steno', '~> 1.2.2', git: 'https://github.com/cloudfoundry/steno.git'
 
 gem "uuidtools", "~> 2.1.2"
 gem "nokogiri", ">= 1.4.4"

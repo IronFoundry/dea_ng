@@ -1,7 +1,7 @@
 require "spec_helper"
 require "dea/staging/admin_buildpack_downloader"
 
-describe AdminBuildpackDownloader do
+describe AdminBuildpackDownloader, unix_only:true do
   let(:logger) { double("logger").as_null_object }
   let(:zip_file) { fixture("buildpack.zip") }
   let(:destination_directory) { Dir.mktmpdir }
