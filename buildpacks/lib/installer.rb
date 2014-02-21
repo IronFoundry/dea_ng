@@ -1,10 +1,17 @@
 require "open3"
-require "dea/utils/platform_compat"
+require "platform_detect"
 
 module Buildpacks
   class Installer < Struct.new(:path, :app_dir, :cache_dir)
-    abstract_method :command
-    include_platform_compat
+    def self.new(path, app_dir, cache_dir)
+      if PlatformDetect.windows?
+        object = WindowsInstaller.allocate
+      else
+        object = LinuxInstaller.allocate
+      end
+      object.send :initialize, path, app_dir, cache_dir
+      object
+    end
     
     def detect
       @detect_output, status = Open3.capture2 command('detect')
