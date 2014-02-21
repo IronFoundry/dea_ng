@@ -41,8 +41,45 @@ describe Buildpacks::Buildpack, type: :buildpack do
   end
 
   describe "#copy_source_files" do
+    context "on Linux" do
+      old_platform = nil
+      before do
+        old_platform = PlatformDetect.platform
+        PlatformDetect.platform = :Linux
+      end
+
+      after do
+        PlatformDetect.platform = old_platform
+      end
+
+      it "Copies files using system command" do
+        # recursively (-r) while not following symlinks (-P) and preserving dir structure (-p)
+        # this is why we use system copy not FileUtil
+        build_pack.should_receive(:system).with("cp -a #{File.expand_path("fakesrcdir") + "/."} #{File.expand_path("fakedestdir/app")}")
+        FileUtils.should_receive(:chmod_R).with(0744, File.expand_path("fakedestdir/app"))
+        build_pack.copy_source_files
+      end
+    end
+
+    context "on Windows" do
+      old_platform = nil
+      before do
+        old_platform = PlatformDetect.platform
+        PlatformDetect.platform = :Windows
+      end
+
+      after do
+        PlatformDetect.platform = old_platform
+      end
+      it "Copies files using FileUtils" do
+        FileUtils.should_receive(:cp_r).with(File.expand_path("fakesrcdir") + "/.", File.expand_path("fakedestdir/app"), { :preserve => true })
+        FileUtils.should_receive(:chmod_R).with(0744, File.expand_path("fakedestdir/app"))
+        build_pack.copy_source_files
+      end
+    end
+
     it "Copy all the files from the source dir into the dest dir" do
-      FileUtils.should_receive(:cp_a).with(File.expand_path("fakesrcdir") + "/.", File.expand_path("fakedestdir/app"))
+      build_pack.should_receive(:cp_a).with(File.expand_path("fakesrcdir") + "/.", File.expand_path("fakedestdir/app"))
       FileUtils.should_receive(:chmod_R).with(0744, File.expand_path("fakedestdir/app"))
       build_pack.copy_source_files
     end

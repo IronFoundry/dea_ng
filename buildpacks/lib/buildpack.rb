@@ -5,7 +5,7 @@ require "pathname"
 require "installer"
 require "procfile"
 require "git"
-require "dea/utils/platform_compat"
+require "platform_detect"
 
 module Buildpacks
   class Buildpack
@@ -65,7 +65,7 @@ module Buildpacks
     end
 
     def copy_source_files
-      FileUtils.cp_a(File.join(source_directory, "."), app_dir)
+      cp_a(File.join(source_directory, "."), app_dir)
       FileUtils.chmod_R(0744, app_dir)
     end
 
@@ -139,6 +139,16 @@ module Buildpacks
       end
 
       procfile.web || release_info.fetch("default_process_types", {})["web"]
+    end
+
+    def cp_a(src, dest)
+      if PlatformDetect.windows?
+        FileUtils.cp_r(src, dest, :preserve => true)
+      else
+        # recursively (-r) while not following symlinks (-P) and preserving dir structure (-p)
+        # this is why we use system copy not FileUtil
+        system "cp -a #{src} #{dest}"
+      end
     end
   end
 end
