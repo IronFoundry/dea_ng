@@ -24,7 +24,7 @@ module Dea
         $stdout_path = "$droplet_base_dir\\logs\\stdout.log"
         $stderr_path = "$droplet_base_dir\\logs\\stderr.log"
         cd app
-        $process = Start-Process -FilePath %s -NoNewWindow -PassThru -RedirectStandardOutput $stdout_path -RedirectStandardError $stderr_path -ArgumentList "-p $port"
+        $process = Start-Process -FilePath %s -NoNewWindow -PassThru -RedirectStandardOutput $stdout_path -RedirectStandardError $stderr_path -ArgumentList "-p $env:PORT"
         Set-Content -Path "$droplet_base_dir\\run.pid" -Encoding ASCII $process.id
         Wait-Process -InputObject $process
     BASH
@@ -35,6 +35,11 @@ module Dea
       script << @user_envs
       script << WIN_START_SCRIPT % @start_command
       script.join("\n")
+
+      command = [
+          { :cmd => 'ps1', :args => script }
+      ]
+      command.to_json
     end
   end
   

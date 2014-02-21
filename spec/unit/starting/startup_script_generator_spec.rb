@@ -70,7 +70,8 @@ describe Dea::StartupScriptGenerator do
 
       describe "starting app" do
         it "includes the start command in the starting script" do
-          script.should include Dea::WindowsStartupScriptGenerator::WIN_START_SCRIPT % start_command
+          start_script = Dea::WindowsStartupScriptGenerator::WIN_START_SCRIPT % start_command
+          script.should include start_script.to_json
         end
       end
     end
