@@ -2,11 +2,7 @@ require "dea/lifecycle/evacuation_handler"
 require "dea/lifecycle/shutdown_handler"
 
 class SignalHandler
-  if VCAP::WINDOWS
-    SIGNALS_OF_INTEREST = %W(TERM INT).freeze
-  else
-    SIGNALS_OF_INTEREST = %W[TERM INT QUIT USR1 USR2].freeze
-  end
+  SIGNALS_OF_INTEREST = %W[TERM INT QUIT USR1 USR2].freeze
 
   def initialize(uuid, local_ip, message_bus, locator_responders, instance_registry, staging_registry, droplet_registry, directory_server, logger, config)
     @uuid = uuid

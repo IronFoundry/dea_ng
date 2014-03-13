@@ -1,5 +1,3 @@
-// +build !windows,!plan9
-
 package common
 
 import (

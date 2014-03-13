@@ -1,7 +1,5 @@
 # coding: UTF-8
 
-require "vcap/common"
-
 module Dea
   class RunningEnv
     HOST = "0.0.0.0".freeze
@@ -21,11 +19,8 @@ module Dea
         ["VCAP_APP_PORT", instance.instance_container_port],
       ]
 
-      if VCAP::WINDOWS
-        env << ["PORT", "$env:VCAP_APP_PORT"]
-      else
-        env << ["PORT", "$VCAP_APP_PORT"]
-      end
+      env << ["PORT", "$VCAP_APP_PORT"]
+
       env
     end
 

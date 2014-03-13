@@ -49,7 +49,7 @@ HEREDOC
       end
     end
 
-    context "when running detect script raises an error", unix_only:true do
+    context "when running detect script raises an error" do
       before do
         FileUtils.chmod 0400,  detect_path
       end
@@ -69,7 +69,7 @@ HEREDOC
 HEREDOC
       end
 
-      it "should be used as a buildpack name", unix_only:true do
+      it "should be used as a buildpack name" do
         subject.detect
         expect(subject.name).to eq("Some Buildpack")
       end
@@ -94,7 +94,7 @@ HEREDOC
 
     before { prepare_script(compile_path, compile_script) }
 
-    it "runs a compile script with a cache directory", unix_only:true do
+    it "runs a compile script with a cache directory" do
       expect { subject.compile }.to_not raise_error
     end
 
@@ -111,7 +111,7 @@ HEREDOC
     end
   end
 
-  describe "release_info",unix_only:true do
+  describe "release_info" do
     let(:release_path) { File.join(tmp_dir, "bin", "release") }
     let(:release_script) do
 <<-HEREDOC

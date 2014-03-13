@@ -5,12 +5,9 @@ require "pathname"
 require "installer"
 require "procfile"
 require "shellwords"
-require 'rbconfig'
 
 module Buildpacks
   class Buildpack
-    WINDOWS = (RbConfig::CONFIG['host_os'] =~ /mswin|mingw|cygwin/)
-
     attr_accessor :source_directory, :destination_directory, :staging_info_path, :environment_json
     attr_reader :procfile, :environment, :app_dir, :log_dir, :tmp_dir, :cache_dir, :buildpack_dirs, :staging_timeout, :staging_info_name
 
@@ -67,11 +64,7 @@ module Buildpacks
     end
 
     def copy_source_files
-      if WINDOWS
-        FileUtils.cp_r(File.join(source_directory, "."), app_dir)
-      else
-        system "cp -a #{File.join(source_directory, ".")} #{app_dir}"
-      end
+      system "cp -a #{File.join(source_directory, ".")} #{app_dir}"
       FileUtils.chmod_R(0744, app_dir)
     end
 

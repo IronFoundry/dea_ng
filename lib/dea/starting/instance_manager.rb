@@ -1,8 +1,4 @@
-require "vcap/common"
 require "dea/starting/instance"
-if VCAP::WINDOWS
-  require "dea/starting/win_instance"
-end
 
 module Dea
   class InstanceManager
@@ -15,12 +11,7 @@ module Dea
     end
 
     def create_instance(attributes)
-      instance = nil
-      if VCAP::WINDOWS
-        instance = WinInstance.new(bootstrap, attributes)
-      else
-        instance = Instance.new(bootstrap, attributes)
-      end
+      instance = Instance.new(bootstrap, attributes)
 
       begin
         instance.validate

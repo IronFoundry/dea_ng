@@ -17,7 +17,7 @@ gem "yajl-ruby", require: %w[yajl yajl/json_gem]
 gem "grape", git: "https://github.com/intridea/grape.git"
 
 gem "vcap_common", git: "https://github.com/cloudfoundry/vcap-common.git"
-gem "steno"
+gem "steno", "~> 1.1.0", git: "https://github.com/cloudfoundry/steno.git"
 
 gem "uuidtools", "~> 2.1.2"
 gem "nokogiri", ">= 1.4.4"
@@ -27,21 +27,15 @@ gem "loggregator_emitter", "~> 3.0"
 
 gem "sys-filesystem"
 
-if RUBY_PLATFORM=~ /mswin|mingw|cygwin/
-  gem "win32-service"
-end
-
 group :test do
   gem "timecop"
-  unless RUBY_PLATFORM=~ /mswin|mingw|cygwin/
-    gem "patron"
-  end
+  gem "patron"
   gem "foreman"
   gem "sinatra"
   gem "librarian"
   gem "rspec"
   gem "rack-test"
-  #gem "rcov"
+  gem "rcov"
   gem "ci_reporter"
   gem "net-ssh"
   gem "webmock"

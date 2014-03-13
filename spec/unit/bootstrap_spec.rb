@@ -3,7 +3,6 @@
 require "spec_helper"
 require "dea/bootstrap"
 require "dea/starting/instance"
-require "dea/starting/win_instance"
 require "steno/sink/counter"
 
 describe Dea::Bootstrap do
@@ -32,20 +31,6 @@ describe Dea::Bootstrap do
     bootstrap
   end
 
-  subject(:win_bootstrap) do
-    stub_const('VCAP::WINDOWS', true)
-    bootstrap = nil
-    if EM.reactor_running?
-      em do
-        bootstrap = Dea::Bootstrap.new(@config)
-        done
-      end
-    else
-      bootstrap = Dea::Bootstrap.new(@config)
-    end
-    bootstrap
-  end
-
   let(:nats_client_mock) do
     nats_client_mock = double("nats_client").as_null_object
     nats_client_mock.stub(:flush) { |&blk| blk.call }
@@ -55,7 +40,7 @@ describe Dea::Bootstrap do
   describe "logging setup" do
     after { bootstrap.setup_logging }
 
-    it "should use a file sink when specified", unix_only:true do
+    it "should use a file sink when specified" do
       @config = { "logging" => { "file" => File.join(tmpdir, "out.log") } }
 
       Steno.should_receive(:init).with do |config|
@@ -65,7 +50,7 @@ describe Dea::Bootstrap do
       end
     end
 
-    it "should use a syslog sink when specified", unix_only:true do
+    it "should use a syslog sink when specified" do
       @config = { "logging" => { "syslog" => "ident" } }
 
       Steno.should_receive(:init).with do |config|

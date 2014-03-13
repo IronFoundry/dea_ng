@@ -162,13 +162,9 @@ module Dea
 
     private :trigger_after_stop
 
-    def promise_prepare_staging_log_script(warden_staged_dir, warden_staging_log)
-      script = "mkdir -p #{warden_staged_dir}/logs && touch #{warden_staging_log}"
-    end
-
     def promise_prepare_staging_log
       Promise.new do |p|
-        script = promise_prepare_staging_log_script(workspace.warden_staged_dir, workspace.warden_staging_log)
+        script = "mkdir -p #{workspace.warden_staged_dir}/logs && touch #{workspace.warden_staging_log}"
 
         logger.info "staging.task.preparing-log", script: script
 
@@ -178,16 +174,12 @@ module Dea
       end
     end
 
-    def promise_app_dir_script
-      "mkdir -p /app && touch /app/support_heroku_buildpacks && chown -R vcap:vcap /app"
-    end
-
     def promise_app_dir
       Promise.new do |p|
         # Some buildpacks seem to make assumption that /app is a non-empty directory
         # See: https://github.com/heroku/heroku-buildpack-python/blob/master/bin/compile#L46
-        script = promise_app_dir_script
-	    
+        script = "mkdir -p /app && touch /app/support_heroku_buildpacks && chown -R vcap:vcap /app"
+
         logger.info "staging.task.making-app-dir", script: script
 
         container.run_script(:app, script, true)
@@ -196,24 +188,18 @@ module Dea
       end
     end
 
-    def promise_stage_script
-      env = Env.new(staging_message, self)
+    def promise_stage
+      Promise.new do |p|
+        env = Env.new(staging_message, self)
 
-      script = [
+        script = [
           "set -o pipefail;",
           env.exported_environment_variables,
           config["dea_ruby"],
           run_plugin_path,
           workspace.plugin_config_path,
           "| tee -a #{workspace.warden_staging_log}"
-      ].join(" ")
-
-      script
-    end
-
-    def promise_stage
-      Promise.new do |p|
-        script = promise_stage_script
+        ].join(" ")
 
         logger.debug "staging.task.execute-staging", script: script
 
@@ -247,46 +233,29 @@ module Dea
       end
     end
 
-    def promise_unpack_app_script(downloaded_app_package_path, warden_staging_log, warden_unstaged_dir)
-      return <<-BASH
-        set -o pipefail
-        package_size=`du -h #{downloaded_app_package_path} | cut -f1`
-        echo "-----> Downloaded app package ($package_size)" | tee -a #{warden_staging_log}
-        unzip -q #{downloaded_app_package_path} -d #{warden_unstaged_dir}
-      BASH
-    end
-
     def promise_unpack_app
       Promise.new do |p|
         logger.info "staging.task.unpacking-app", destination: workspace.warden_unstaged_dir
 
-        script = promise_unpack_app_script(
-            workspace.downloaded_app_package_path,
-            workspace.warden_staging_log,
-            workspace.warden_unstaged_dir
-        )
-
-        loggregator_emit_result container.run_script(:app, script)
+        loggregator_emit_result container.run_script(:app, <<-BASH)
+          set -o pipefail
+          package_size=`du -h #{workspace.downloaded_app_package_path} | cut -f1`
+          echo "-----> Downloaded app package ($package_size)" | tee -a #{workspace.warden_staging_log}
+          unzip -q #{workspace.downloaded_app_package_path} -d #{workspace.warden_unstaged_dir}
+        BASH
 
         p.deliver
       end
     end
 
-    def promise_pack_app_script(warden_staged_dir, warden_staged_droplet)
-      return <<-BASH
-          cd #{warden_staged_dir} &&
-          COPYFILE_DISABLE=true tar -czf #{warden_staged_droplet} .
-      BASH
-    end
-
     def promise_pack_app
       Promise.new do |p|
-        script = promise_pack_app_script(
-          workspace.warden_staged_dir,
-          workspace.warden_staged_droplet
-        )
         logger.info "staging.task.packing-droplet"
-        container.run_script(:app, script)
+
+        container.run_script(:app, <<-BASH)
+          cd #{workspace.warden_staged_dir} &&
+          COPYFILE_DISABLE=true tar -czf #{workspace.warden_staged_droplet} .
+        BASH
         p.deliver
       end
     end
@@ -295,12 +264,7 @@ module Dea
       Promise.new do |p|
         logger.info "staging.app-download.starting", uri: staging_message.download_uri
 
-        download_destination = nil
-        if VCAP::WINDOWS
-          download_destination = Tempfile.new("app-package-download.tgz", workspace.workspace_dir)
-        else
-          download_destination = Tempfile.new("app-package-download.tgz")
-        end
+        download_destination = Tempfile.new("app-package-download.tgz")
 
         Download.new(staging_message.download_uri, download_destination, nil, logger).download! do |error|
           if error
@@ -324,21 +288,13 @@ module Dea
       end
     end
 
-    def promise_log_upload_started_script(warden_staged_droplet, warden_staging_log)
-      return <<-BASH
-        set -o pipefail
-        droplet_size=`du -h #{warden_staged_droplet} | cut -f1`
-        echo "-----> Uploading droplet ($droplet_size)" | tee -a #{warden_staging_log}
-      BASH
-    end
-
     def promise_log_upload_started
       Promise.new do |p|
-        script = promise_log_upload_started_script(
-            workspace.warden_staged_droplet,
-            workspace.warden_staging_log
-        )
-        loggregator_emit_result container.run_script(:app, script)
+        loggregator_emit_result container.run_script(:app, <<-BASH)
+          set -o pipefail
+          droplet_size=`du -h #{workspace.warden_staged_droplet} | cut -f1`
+          echo "-----> Uploading droplet ($droplet_size)" | tee -a #{workspace.warden_staging_log}
+        BASH
         p.deliver
       end
     end
@@ -473,34 +429,15 @@ module Dea
       end
     end
 
-    def promise_pack_buildpack_cache_script(warden_cache, warden_staged_buildpack_cache)
-      return <<-BASH
-          mkdir -p #{warden_cache} &&
-          cd #{warden_cache} &&
-          COPYFILE_DISABLE=true tar -czf #{warden_staged_buildpack_cache} .
-      BASH
-    end
-
     def promise_pack_buildpack_cache
       Promise.new do |p|
-        # TODO: Ignore if buildpack cache is empty or does not exist
-        script = promise_pack_buildpack_cache_script(
-            workspace.warden_cache,
-            workspace.warden_staged_buildpack_cache
-        )
-        container.run_script(:app, script)
+        container.run_script(:app, <<-BASH)
+          mkdir -p #{workspace.warden_cache} &&
+          cd #{workspace.warden_cache} &&
+          COPYFILE_DISABLE=true tar -czf #{workspace.warden_staged_buildpack_cache} .
+        BASH
         p.deliver
       end
-    end
-
-    def promise_unpack_buildpack_cache_script(downloaded_buildpack_cache_path, warden_staging_log, warden_cache)
-      return <<-BASH
-          set -o pipefail
-          package_size=`du -h #{downloaded_buildpack_cache_path} | cut -f1`
-          echo "-----> Downloaded app buildpack cache ($package_size)" | tee -a #{warden_staging_log}
-          mkdir -p #{warden_cache}
-          tar xfz #{downloaded_buildpack_cache_path} -C #{warden_cache}
-      BASH
     end
 
     def promise_unpack_buildpack_cache
@@ -508,9 +445,14 @@ module Dea
         if File.exists?(workspace.downloaded_buildpack_cache_path)
           logger.info "staging.buildpack-cache.unpack",
             destination: workspace.warden_cache
-          script = promise_unpack_buildpack_cache_script(workspace.downloaded_buildpack_cache_path,
-                                                         workspace.warden_staging_log, workspace.warden_cache)
-          loggregator_emit_result container.run_script(:app, script)
+
+          loggregator_emit_result container.run_script(:app, <<-BASH)
+          set -o pipefail
+          package_size=`du -h #{workspace.downloaded_buildpack_cache_path} | cut -f1`
+          echo "-----> Downloaded app buildpack cache ($package_size)" | tee -a #{workspace.warden_staging_log}
+          mkdir -p #{workspace.warden_cache}
+          tar xfz #{workspace.downloaded_buildpack_cache_path} -C #{workspace.warden_cache}
+          BASH
         end
 
         p.deliver
