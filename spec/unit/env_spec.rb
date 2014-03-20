@@ -63,7 +63,7 @@ describe Dea::Env do
   def self.it_exports(name, value)
     it "exports $#{name} as #{value}" do
       if platform == :Windows
-        example = %Q{$env:%s='%s'} % [name, value]
+        example = %Q{$env:%s="%s"} % [name, value.to_s.gsub('"', '`"')]
       else
         example = %Q{export %s="%s"} % [name, value.to_s.gsub('"', '\"')]
       end
@@ -85,8 +85,9 @@ describe Dea::Env do
   def self.it_exports_with_substr(name, value_substr)
     it "exports $#{name} which contains #{value_substr}" do
       if platform == :Windows
-        # Windows uses PowerShell's single-quote strings, which does not require us to escape double-quotes.
+        # Windows uses PowerShell's double-quote strings, which requires escaping double-quotes in backticks.
         name_regex = Regexp.new("^\\$env:%s" % [name])
+        value_substr = value_substr.gsub('"', '`"')
       else
         # Linux uses 'export', which requires the value to be in double-quotes. This means
         # we need to handle escaping them in the generated JSON.

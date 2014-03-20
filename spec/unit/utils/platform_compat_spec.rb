@@ -57,7 +57,10 @@ describe PlatformCompat do
     context "on Windows" do
       let(:platform) { :Windows }
       it "uses PowerShell env: namespace" do
-        expect(PlatformCompat.to_env({"foo" => "bar"})).to eq %Q{$env:foo='bar'\n}
+        expect(PlatformCompat.to_env({"foo" => "bar"})).to eq %Q{$env:foo="bar"\n}
+      end
+      it "encodes double quotes" do
+        expect(PlatformCompat.to_env({"foo" => %Q{bar"foo"}})).to eq "$env:foo=\"bar`\"foo`\"\"\n"
       end
     end
   end

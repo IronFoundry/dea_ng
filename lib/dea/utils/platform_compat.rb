@@ -53,7 +53,7 @@ module PlatformCompat
   def self.to_env(envs)
     envs.map do |(key, value)|
       if windows?
-        %Q{$env:%s='%s'\n} % [key, value]
+        %Q{$env:%s="%s"\n} % [key, value.to_s.gsub('"', '`"')]
       else
         %Q{export %s="%s";\n} % [key, value.to_s.gsub('"', '\"')]
       end
