@@ -530,7 +530,8 @@ module Dea
         byte: disk_limit_in_bytes,
         inode: disk_inode_limit,
         limit_memory: memory_limit_in_bytes,
-        setup_network: with_network
+        setup_network: with_network,
+        setup_logging: {}
       )
       promises = [promise_app_download]
       promises << promise_buildpack_cache_download if staging_message.buildpack_cache_download_uri

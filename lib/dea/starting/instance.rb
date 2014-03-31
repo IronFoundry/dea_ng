@@ -523,13 +523,21 @@ module Dea
       Promise.new do |p|
         bind_mounts = [{'src_path' => droplet.droplet_dirname, 'dst_path' => droplet.droplet_dirname}]
         with_network = true
+        logging_info = {
+                            :application_id => attributes['application_id'],
+                            :instance_index => attributes['instance_index'].to_s,
+                            :loggregator_router => config['loggregator']['router'],
+                            :loggregator_secret => config['loggregator']['shared_secret'],
+                            :drain_uris => attributes['services']
+                        }
         container.create_container(
           bind_mounts: bind_mounts + config['bind_mounts'],
           limit_cpu: config['instance']['cpu_limit_shares'],
           byte: disk_limit_in_bytes,
           inode: config.instance_disk_inode_limit,
           limit_memory: memory_limit_in_bytes,
-          setup_network: with_network)
+          setup_network: with_network,
+          setup_logging: logging_info)
 
         attributes['warden_handle'] = container.handle
 

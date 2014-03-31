@@ -137,7 +137,7 @@ class Container
   end
 
   def create_container(params)
-    [:bind_mounts, :limit_cpu, :byte, :inode, :limit_memory, :setup_network].each do |param|
+    [:bind_mounts, :limit_cpu, :byte, :inode, :limit_memory, :setup_network, :setup_logging].each do |param|
       raise ArgumentError, "expecting #{param.to_s} parameter to create container" if params[param].nil?
     end
 
@@ -147,6 +147,7 @@ class Container
       limit_disk(byte: params[:byte], inode: params[:inode])
       limit_memory(params[:limit_memory])
       setup_network if params[:setup_network]
+      setup_logging(params[:setup_logging]) unless params[:setup_logging].empty?
     end
   end
 
@@ -183,6 +184,17 @@ class Container
     response = call(:app, request)
     network_ports['console_host_port'] = response.host_port
     network_ports['console_container_port'] = response.container_port
+  end
+
+  def setup_logging(setup_logging)
+    request = ::Warden::Protocol::LoggingRequest.new
+    request.handle = self.handle
+    request.application_id = setup_logging[:application_id]
+    request.instance_index = setup_logging[:instance_index]
+    request.loggregator_router = setup_logging[:loggregator_router]
+    request.loggregator_secret = setup_logging[:loggregator_secret]
+    request.drain_uris = setup_logging[:drain_uris]
+    call(:app, request)
   end
 
   def info

@@ -529,7 +529,8 @@ YAML
              byte: staging_task.disk_limit_in_bytes,
              inode: staging_task.disk_inode_limit,
              limit_memory: staging_task.memory_limit_in_bytes,
-             setup_network: with_network).ordered
+             setup_network: with_network,
+             setup_logging: {}).ordered
       %w(
         promise_app_download
         promise_prepare_staging_log

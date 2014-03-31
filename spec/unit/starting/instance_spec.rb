@@ -15,7 +15,14 @@ describe Dea::Instance do
     double('bootstrap', :config => config, :snapshot => snapshot)
   end
   let(:config) do
-    Dea::Config.new({})
+    Dea::Config.new(
+        {
+            "loggregator" => {
+                "router" => "router",
+                "shared_secret" => "shared_secret",
+            }
+        }
+    )
   end
   before do
     bootstrap.config.stub(:crashes_path).and_return('crashes/path')
@@ -633,6 +640,14 @@ describe Dea::Instance do
           {'src_path' => droplet.droplet_dirname, 'dst_path' => droplet.droplet_dirname},
           {'src_path' => '/var/src/', 'dst_path' => '/var/dst'}
         ]
+
+        expected_logging = {
+            :application_id => instance.attributes['application_id'],
+            :instance_index => instance.attributes['instance_index'].to_s,
+            :loggregator_router => instance.config['loggregator']['router'],
+            :loggregator_secret => instance.config['loggregator']['shared_secret'],
+            :drain_uris => instance.attributes['services']
+        }
         with_network = true
         instance.container.should_receive(:create_container).
           with(bind_mounts: expected_bind_mounts,
@@ -640,7 +655,8 @@ describe Dea::Instance do
                byte: instance.disk_limit_in_bytes,
                inode: instance.config.instance_disk_inode_limit,
                limit_memory: instance.memory_limit_in_bytes,
-               setup_network: with_network)
+               setup_network: with_network,
+               setup_logging: expected_logging)
         expect_start.to_not raise_error
         instance.exit_description.should be_empty
       end

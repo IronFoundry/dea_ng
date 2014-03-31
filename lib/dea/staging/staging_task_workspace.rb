@@ -1,6 +1,7 @@
 require "fileutils"
 require "dea/staging/admin_buildpack_downloader"
 require "dea/staging/buildpack_manager"
+require 'dea/utils/platform_compat'
 
 module Dea
   class StagingTaskWorkspace
