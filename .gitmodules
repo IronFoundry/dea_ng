@@ -12,7 +12,7 @@
 	url = https://github.com/cloudfoundry-incubator/cloudfoundry-buildpack-clr.git
 [submodule "buildpacks/vendor/java"]
 	path = buildpacks/vendor/java
-	url = https://github.com/cloudfoundry/java-buildpack
+	url = https://github.com/cloudfoundry/java-buildpack.git
 [submodule "go/src/github.com/cloudfoundry/gosteno"]
 	path = go/src/github.com/cloudfoundry/gosteno
 	url = https://github.com/cloudfoundry/gosteno.git
