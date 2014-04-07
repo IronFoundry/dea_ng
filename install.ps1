@@ -191,9 +191,9 @@ if (!(VerifyDependencies)) {
     exit 1
 }
 
-# DEAServicePrepare
-# EventMachinePrepare
+DEAServicePrepare
+EventMachinePrepare
 DirectoryServiceInstall
-# DEAServiceInstall
+DEAServiceInstall
 
 Set-Location $StartDirectory
