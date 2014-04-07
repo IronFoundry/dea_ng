@@ -68,14 +68,14 @@ function DEAServicePrepare {
 
     Write-Host 'Updating GEM packages for dea_ng'
     . gem update --system --quiet
-    . gem install bundle --quiet
+    . gem install bundle --no-document --quiet
 
     Set-Location $DeaAppPath
     . bundle install --quiet
 
     $curlRoot = Resolve-Path (Join-Path $StartDirectory '\tools\curl')
     Write-Host "Retrieving and installing patron gem"
-    . gem install patron -v '0.4.18' --platform=x86-mingw32 -- -- --with-curl-lib="$curlRoot\bin" --with-curl-include="$curlRoot\include"
+    . gem install patron -v '0.4.18' --no-document --platform=x86-mingw32 -- -- --with-curl-lib="$curlRoot\bin" --with-curl-include="$curlRoot\include"
 
     Write-Host 'Finished Installing DEA dependent GEMs'
 }
@@ -85,9 +85,20 @@ function DirectoryServiceInstall {
     #
     # Install Directory Service
     #
+    RemoveFirewallRules "IF_winrunner"
 
-    #$directoryService = Join-Path $InstallPath ""
+    $directoryService = Join-Path $InstallPath "go\winrunner.exe"
 
+    Write-Host "WinRunner Exe: $directoryService"
+    Write-Host "Dea Path: $DeaConfigFilePath"
+
+    . $directoryService stop
+    . $directoryService remove 
+
+    . $directoryService install "$DeaConfigFilePath"
+
+    AddFirewallRules $directoryService "IF_winrunner"
+    
     Write-Host 'Finished Installing Directory Service'
 }
 
@@ -100,7 +111,7 @@ function EventMachinePrepare {
     Set-Location "$InstallPath\eventmachine"
     . gem uninstall eventmachine --force --version 1.0.3 --quiet
     . gem build eventmachine.gemspec --quiet
-    . gem install eventmachine-1.0.3.gem --quiet
+    . gem install eventmachine-1.0.3.gem  --quiet
 }
 
 function FindApp($appName) {
@@ -180,9 +191,9 @@ if (!(VerifyDependencies)) {
     exit 1
 }
 
-DEAServicePrepare
-EventMachinePrepare
+# DEAServicePrepare
+# EventMachinePrepare
 DirectoryServiceInstall
-DEAServiceInstall
+# DEAServiceInstall
 
 Set-Location $StartDirectory

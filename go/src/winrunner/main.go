@@ -38,14 +38,9 @@ func main() {
 	if err != nil {
 		log.Fatalf("failed to determine if we are running in an interactive session: %v", err)
 	}
-	if !isIntSess {
-
-		runService(svcName, "", false)
-		return
-	}
 
 	if len(os.Args) < 2 {
-		usage("no command specified")
+		usage("no command or configuration specified.")
 	}
 
 	cmd := strings.ToLower(os.Args[1])
@@ -77,8 +72,14 @@ func main() {
 	case "continue":
 		err = controlService(svcName, svc.Continue, svc.Running)
 	default:
+		if !isIntSess {
+			runService(svcName, "", false)
+			return
+		}
+
 		usage(fmt.Sprintf("invalid command %s", cmd))
 	}
+
 	if err != nil {
 		log.Fatalf("failed to %s %s: %v", cmd, svcName, err)
 	}
