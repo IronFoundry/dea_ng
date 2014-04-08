@@ -20,23 +20,16 @@ param(
 #  eventmachine source
 #
 
-#
-# Global Settings
-#
-$DeaServiceName = 'IFDeaSvc'
-$DeaServiceDescription = 'IronFoundry DEA'
-$WardenServiceName = 'IronFoundry.Warden'
-$DirectoryServiceServiceName = 'IFDeaDirSvc'
-$DeaConfigFilePath = Join-Path $RootDataPath 'dea_ng\config\dea.yml'
 
-$StartDirectory = Resolve-Path $PWD
-$InstallPath = $StartDirectory
-$RubyBinPath = $null
-$DeaAppPath = Join-Path $InstallPath 'bin'
 
 #
 # Functions
 #
+function Get-ScriptDirectory
+{
+    $Invocation = (Get-Variable MyInvocation -Scope 1).Value
+    Split-Path $Invocation.MyCommand.Path
+}
 
 function AddFirewallRules($exePath, $ruleName) {
     . netsh.exe advfirewall firewall add rule name="$ruleName"-allow dir=in action=allow program="$exePath"
@@ -177,6 +170,21 @@ function VerifyDependencies {
 
     return $success
 }
+
+
+#
+# Global Settings
+#
+$DeaServiceName = 'IFDeaSvc'
+$DeaServiceDescription = 'IronFoundry DEA'
+$WardenServiceName = 'IronFoundry.Warden'
+$DirectoryServiceServiceName = 'IFDeaDirSvc'
+$DeaConfigFilePath = Join-Path $RootDataPath 'dea_ng\config\dea.yml'
+
+$StartDirectory = (Get-ScriptDirectory)
+$InstallPath = $StartDirectory
+$RubyBinPath = $null
+$DeaAppPath = Join-Path $InstallPath 'bin'
 
 #
 # Main
