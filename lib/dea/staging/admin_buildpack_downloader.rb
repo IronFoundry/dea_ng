@@ -36,10 +36,11 @@ class AdminBuildpackDownloader
         if err
           p.deliver
         else
-          NonBlockingUnzipper.new.unzip_to_folder(tmpfile.path, dest_dir) do
-            tmpfile.unlink
+          # uses socket pairs not supported on windows
+          #NonBlockingUnzipper.new.unzip_to_folder(tmpfile.path, dest_dir) do
+          #  tmpfile.unlink
             p.deliver
-          end
+          #end
         end
       end
     end
