@@ -7,7 +7,7 @@ Installing the DEA on Windows
 
 It is recommended to use the [installation package](#installation-package) to install the V2 DEA on Windows.
 
-Be sure to update your Cloud Controller's `config/stacks.yml` to recognize the `mswin-clr` stack:
+Be sure to update your Cloud Controller's `config/stacks.yml` to recognize the `windows2012` stack:
 
 ```
 $ cat cloud_controller_ng/config/stacks.yml 
@@ -16,7 +16,7 @@ default: lucid64
 stacks:
   - name: lucid64
     description: Ubuntu Lucid 64-bit
-  - name: mswin-clr
+  - name: windows2012
     description: Microsoft .NET / Windows 64-bit
 ```
 
