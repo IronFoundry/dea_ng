@@ -36,13 +36,17 @@ function AddFirewallRules($exePath, $ruleName) {
     . netsh.exe advfirewall firewall add rule name="$ruleName"-out-allow dir=out action=allow program="$exePath"
 }
 
+function DEAServiceRemove {
+    Write-Host "Removing existing DEA Service"
+    . sc.exe stop $DeaServiceName
+    . sc.exe delete $DeaServiceName
+}
+
 function DEAServiceInstall {
     Write-Host 'Installing dea_ng Service'
     #
     # Install dea_ng Service
     #
-
-    . sc.exe delete $DeaServiceName
     RemoveFirewallRules 'rubyw-193'
 
     $rubywBinPath = Join-Path $RubyBinPath 'rubyw.exe'
@@ -199,6 +203,7 @@ if (!(VerifyDependencies)) {
     exit 1
 }
 
+DEAServiceRemove
 DEAServicePrepare
 EventMachinePrepare
 DirectoryServiceInstall
