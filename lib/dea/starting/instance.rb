@@ -524,11 +524,11 @@ module Dea
         bind_mounts = [{'src_path' => droplet.droplet_dirname, 'dst_path' => droplet.droplet_dirname}]
         with_network = true
         logging_info = {
-                            :application_id => attributes['application_id'],
-                            :instance_index => attributes['instance_index'].to_s,
+                            :application_id => snapshot_attributes['application_id'],
+                            :instance_index => snapshot_attributes['instance_index'].to_s,
                             :loggregator_router => config['loggregator']['router'],
                             :loggregator_secret => config['loggregator']['shared_secret'],
-                            :drain_uris => attributes['services']
+                            :drain_uris => snapshot_attributes['syslog_drain_urls']
                         }
         container.create_container(
           bind_mounts: bind_mounts + config['bind_mounts'],
