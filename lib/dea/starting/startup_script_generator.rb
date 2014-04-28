@@ -22,7 +22,7 @@ module Dea
     WIN_START_SCRIPT = strip_heredoc(<<-BASH).freeze
         $droplet_base_dir = $PWD
         $env:path += ";$(Resolve-Path ./app)"
-        dir env: | %%{"{0}={1}" -f $_.Name, $_.Value} > "$droplet_base_dir\\logs\\env.log"
+        dir env: | %%{"{0}={1}" -f $_.Name, $_.Value} | Out-File -Encoding UTF8 -Force -FilePath "$droplet_base_dir\\logs\\env.log"
         cd app
         $process = Start-Process -FilePath %s -NoNewWindow -PassThru -ArgumentList "-p $env:PORT"
         Set-Content -Path "$droplet_base_dir\\run.pid" -Encoding ASCII $process.id

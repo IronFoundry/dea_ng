@@ -646,7 +646,7 @@ describe Dea::Instance do
             :instance_index => instance.attributes['instance_index'].to_s,
             :loggregator_router => instance.config['loggregator']['router'],
             :loggregator_secret => instance.config['loggregator']['shared_secret'],
-            :drain_uris => instance.attributes['services']
+            :drain_uris => instance.attributes['services'].map { |svc_hash| svc_hash['syslog_drain_url'] }.compact
         }
         with_network = true
         instance.container.should_receive(:create_container).
