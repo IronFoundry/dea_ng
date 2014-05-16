@@ -47,15 +47,15 @@ function DEAServiceInstall {
     #
     # Install dea_ng Service
     #
-    RemoveFirewallRules 'ruby-193'
+    RemoveFirewallRules 'rubyw-193'
 
-    $rubywBinPath = Join-Path $RubyBinPath 'ruby.exe'
+    $rubywBinPath = Join-Path $RubyBinPath 'rubyw.exe'
     $deaServiceBinPath = "$rubywBinPath -C $DeaAppPath dea_winsvc.rb $DeaConfigFilePath"
 
     . sc.exe create $DeaServiceName start= delayed-auto binPath= $deaServiceBinPath displayName= "$DeaServiceDescription" depend= "$DirectoryServiceServiceName/$WardenServiceName"
     . sc.exe failure $DeaServiceName reset= 86400 actions= 'restart/60000/restart/60000/restart/60000'
 
-    AddFirewallRules $rubywBinPath 'ruby-193'
+    AddFirewallRules $rubywBinPath 'rubyw-193'
 
     Write-Host 'Finished Installing dea_ng Service'
 }
@@ -140,12 +140,12 @@ function VerifyDependencies {
     Write-Host 'Verifying dependencies'
     $success = $true
 
-    $rubyApp = (FindApp 'ruby.exe')
+    $rubyApp = (FindApp 'rubyw.exe')
     if (!$rubyApp) {
         Write-Error 'Unable to find Ruby'
         $success = $false
     } else {
-        Write-Verbose "Found ruby.exe at $rubyApp"
+        Write-Verbose "Found rubyw.exe at $rubyApp"
     }
 
     $Script:RubyBinPath = Split-Path $rubyApp -Parent
