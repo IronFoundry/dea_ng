@@ -20,7 +20,7 @@ function AddFirewallRules($exePath, $ruleName) {
 function DEAServiceRemove {
     Write-Host "Stopping and removing existing DEA Service"
     . sc.exe stop $DeaServiceName
-    Stop-Process -Name ruby.exe -Force -ErrorAction Continue 2> $nulll
+    Stop-Process -Name ruby.exe -Force -ErrorAction Continue 2> $null
 
     . sc.exe delete $DeaServiceName
     if ($LASTEXITCODE -eq '1072') {
@@ -83,11 +83,7 @@ function DirectoryServiceInstall {
     . $directoryService stop
     Stop-Process -Name winrunner.exe -Force -ErrorAction Continue 2> $null
 
-    . $directoryService remove 
-    if ($? -eq $false) {
-        throw "Could not remove DEA Directory Service."
-    }
-
+    . $directoryService remove
     . $directoryService install "$DeaConfigFilePath"
 
     AddFirewallRules $directoryService "IF_winrunner"
