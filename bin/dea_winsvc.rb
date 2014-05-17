@@ -18,47 +18,54 @@ unless ARGV.size == 1
   abort("Usage: dea_winsvc.rb <config path>")
 end
 
-class DeaDaemon < Daemon
+begin
+  class DeaDaemon < Daemon
 
-  def service_init
-    begin
-      config = YAML.load_file(ARGV[0])
+    def service_init
+      begin
+        config = YAML.load_file(ARGV[0])
 
-      # Ensure pid file is deleted or else service won't start
-      pid_file = config["pid_filename"]
-      FileUtils.rm_f(pid_file)
+        # Ensure pid file is deleted or else service won't start
+        pid_file = config["pid_filename"]
+        FileUtils.rm_f(pid_file)
 
-      @bootstrap = Dea::Bootstrap.new(config)
-    rescue => e
-      abort("ERROR: Failed loading config: #{e}")
-    end
-  end
-
-  def service_main(*args)
-
-    EM.epoll
-
-    begin
-      EM.run {
-        @bootstrap.setup
-        @bootstrap.start
-      }
-    rescue => e
-      @bootstrap.logger.error "DEA Windows Server failed", error: e
-      exit!
+        @bootstrap = Dea::Bootstrap.new(config)
+      rescue => e
+        abort("ERROR: Failed loading config: #{e}")
+      end
     end
 
-    stop_em
+    def service_main(*args)
+
+      EM.epoll
+
+      begin
+        EM.run {
+          @bootstrap.setup
+          @bootstrap.start
+        }
+      rescue => e
+        @bootstrap.logger.error "DEA Windows Server failed", error: e
+        exit!
+      end
+
+      stop_em
+    end
+
+    def service_stop
+      stop_em
+    end
+
+    def stop_em
+      EM.next_tick { EM.stop }
+    end
+
   end
 
-  def service_stop
-    stop_em
-  end
+  DeaDaemon.mainloop
 
-  def stop_em
-    EM.next_tick { EM.stop }
-  end
 
+rescue
+  # Handle any outside exceptions to help ensure t
+  exit!(false)
 end
-
-DeaDaemon.mainloop
