@@ -4,25 +4,6 @@ param(
 )
 
 #
-# Assumes:
-#  Ruby Installed
-#  Ruby DevKit Installed
-#  Go Installed
-#  Git installed
-# 
-# In Path:
-#   gem
-#   bundle
-#   Git
-#
-# In Package:
-#  dea_ng source
-#  eventmachine source
-#
-
-
-
-#
 # Functions
 #
 function Get-ScriptDirectory
@@ -37,9 +18,14 @@ function AddFirewallRules($exePath, $ruleName) {
 }
 
 function DEAServiceRemove {
-    Write-Host "Removing existing DEA Service"
+    Write-Host "Stopping and removing existing DEA Service"
     . sc.exe stop $DeaServiceName
+    Stop-Process -Name ruby.exe 2> $null
+
     . sc.exe delete $DeaServiceName
+    if ($LASTEXITCODE -eq '1072') {
+        throw "Service deletion requires a reboot.  Stopping"
+    }
 }
 
 function DEAServiceInstall {
@@ -52,9 +38,8 @@ function DEAServiceInstall {
     $rubywBinPath = Join-Path $RubyBinPath 'ruby.exe'
     $deaServiceBinPath = "$rubywBinPath -C $DeaAppPath dea_winsvc.rb $DeaConfigFilePath"
 
-    . sc.exe create $DeaServiceName start= delayed-auto binPath= $deaServiceBinPath displayName= "$DeaServiceDescription" depend= "$DirectoryServiceServiceName/$WardenServiceName"
-    . sc.exe failure $DeaServiceName reset= 86400 actions= 'restart/60000/restart/60000/restart/60000'
-
+    . sc.exe create $DeaServiceName start= disabled binPath= $deaServiceBinPath displayName= "$DeaServiceDescription" depend= "$DirectoryServiceServiceName/$WardenServiceName"
+    
     AddFirewallRules $rubywBinPath 'ruby-193'
 
     Write-Host 'Finished Installing dea_ng Service'
@@ -77,6 +62,12 @@ function DEAServicePrepare {
     Write-Host 'Finished Installing DEA dependent GEMs'
 }
 
+function DEAServiceConfigureStart {
+    Write-Host "Reconfiguring DEA to auto start and restart"
+    . sc.exe config $DeaServiceName start= delayed-auto
+    . sc.exe failure $DeaServiceName reset= 86400 actions= 'restart/60000/restart/60000/restart/60000'
+}
+
 function DirectoryServiceInstall {
     Write-Host 'Installing Directory Service'
     #
@@ -90,7 +81,11 @@ function DirectoryServiceInstall {
     Write-Host "Dea Path: $DeaConfigFilePath"
 
     . $directoryService stop
+    Stop-Process -Name winrunner.exe 2> $null
     . $directoryService remove 
+    if ($? -eq $false) {
+        throw "Could not remove DEA Directory Service."
+    }
 
     . $directoryService install "$DeaConfigFilePath"
 
@@ -175,7 +170,6 @@ function VerifyDependencies {
     return $success
 }
 
-
 #
 # Global Settings
 #
@@ -208,5 +202,6 @@ DEAServicePrepare
 EventMachinePrepare
 DirectoryServiceInstall
 DEAServiceInstall
+DEAServiceConfigureStart
 
 Set-Location $StartDirectory
