@@ -1,6 +1,23 @@
 require "spec_helper"
 
 describe Buildpacks::Buildpack, type: :buildpack do
+  #
+  # Buildpacks don't have access to the platform_compat.rb helpers that we wrote for the DEA.
+  # Do we have a custom helper for buildpacks called platform_detect.rb.
+  # This means we also need a custom helper for buildpack specs, so allow overriding the platform in a given spec.
+  #
+  def self.buildpack_platform(symbol, opts = {})
+    let(symbol) { opts[:default_platform] || :Linux }
+    before {
+      platform = self.public_send(symbol)
+      @_old_platform = PlatformDetect.platform
+      PlatformDetect.platform = platform
+    }
+    after {
+      PlatformDetect.platform = @_old_platform
+    }
+  end
+
   let(:fake_buildpacks_dir) { fixture("fake_buildpacks") }
   let(:buildpack_dirs) { Pathname(fake_buildpacks_dir).children.map(&:to_s) }
   let(:config) do
@@ -41,16 +58,10 @@ describe Buildpacks::Buildpack, type: :buildpack do
   end
 
   describe "#copy_source_files" do
-    context "on Linux" do
-      old_platform = nil
-      before do
-        old_platform = PlatformDetect.platform
-        PlatformDetect.platform = :Linux
-      end
+    buildpack_platform(:platform)
 
-      after do
-        PlatformDetect.platform = old_platform
-      end
+    context "on Linux" do
+      let(:platform) { :Linux }
 
       it "Copies files using system command" do
         # recursively (-r) while not following symlinks (-P) and preserving dir structure (-p)
@@ -62,15 +73,8 @@ describe Buildpacks::Buildpack, type: :buildpack do
     end
 
     context "on Windows" do
-      old_platform = nil
-      before do
-        old_platform = PlatformDetect.platform
-        PlatformDetect.platform = :Windows
-      end
+      let(:platform) { :Windows }
 
-      after do
-        PlatformDetect.platform = old_platform
-      end
       it "Copies files using FileUtils" do
         FileUtils.should_receive(:cp_r).with(File.expand_path("fakesrcdir") + "/.", File.expand_path("fakedestdir/app"), { :preserve => true })
         FileUtils.should_receive(:chmod_R).with(0744, File.expand_path("fakedestdir/app"))
@@ -86,15 +90,36 @@ describe Buildpacks::Buildpack, type: :buildpack do
   end
 
   describe "#compile_with_timeout" do
+    buildpack_platform(:platform)
     before { build_pack.stub_chain(:build_pack, :compile) { sleep duration } }
 
     context "when the staging takes too long" do
       let(:duration) { 1 }
 
-      it "kills the process group for the compilation task" do
-        expect(Process).to receive(:kill).with(15, -Process.getpgid(Process.pid))
+      context "on Linux" do
+        let(:platform) { :Linux }
 
-        build_pack.compile_with_timeout(0.01)
+        # Process.getpgid() throws "not implemented" on Windows
+        it "kills the process group for the compilation task", :unix_only => true do
+          expect(Process).to receive(:kill).with(15, -Process.getpgid(Process.pid))
+
+          build_pack.compile_with_timeout(0.1)
+        end
+      end
+
+      context "on Windows" do
+        let(:platform) { :Windows }
+
+        it "does not kill the process group for the compilation task" do
+          allow(Process).to receive(:kill)
+  
+          build_pack.compile_with_timeout(0.1)
+
+          # WINDOWS_TODO: If it's important to kill the buildpack processes, then we'll need to come up
+          # with a different way of launching the child process so that we get back the PID to kill
+          # Windows doesn't propagate signals to child processes.
+          expect(Process).not_to have_received(:kill)
+        end
       end
     end
 

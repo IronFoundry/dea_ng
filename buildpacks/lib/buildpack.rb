@@ -75,7 +75,7 @@ module Buildpacks
           build_pack.compile
         end
       rescue Timeout::Error
-        Process.kill(15, -Process.getpgid(Process.pid))
+        terminate_process(Process.pid)
       end
     end
 
@@ -153,6 +153,15 @@ module Buildpacks
         # recursively (-r) while not following symlinks (-P) and preserving dir structure (-p)
         # this is why we use system copy not FileUtil
         system "cp -a #{src} #{dest}"
+      end
+    end
+
+    def terminate_process(pid)
+      # WINDOWS_TODO: If it's important to kill the buildpack processes, then we'll need to come up
+      # with a different way of launching the child process so that we get back the PID to kill
+      # Windows doesn't propagate signals to child processes.
+      unless PlatformDetect.windows?
+        Process.kill(15, -Process.getpgid(pid))
       end
     end
   end

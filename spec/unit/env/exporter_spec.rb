@@ -131,7 +131,7 @@ module Dea
       # Windows: we avoid this on Windows, because PowerShell variables have a different
       # namespace than Environment variables.
       # If this becomes a problem, we can look into parsing "$x" into "$env:x"
-      context "when they reference each other in other in order" do
+      context "when they reference each other in other in order", :unix_only => true do
         let(:variables) { [["x", "bar"], ["foo", "$x"]] }
 
         context "when evaluated by bash" do
