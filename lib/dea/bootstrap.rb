@@ -65,6 +65,10 @@ module Dea
 
     def validate_config
       config.validate
+    rescue Exception => e
+      # Too early in the init process, we haven't got a logger
+      puts("Validation config failed with error #{e}")
+      raise e
     end
 
     def setup
@@ -204,7 +208,7 @@ module Dea
         pid_file = VCAP::PidFile.new(path, false)
         pid_file.unlink_at_exit
       rescue => err
-        logger.error "Cannot create pid file at #{path} (#{err})"
+        logger.error("Cannot create pid file at #{path} (#{err})")
         raise
       end
     end
@@ -402,7 +406,7 @@ module Dea
 
     def send_staging_stop
       staging_task_registry.tasks.each do |task|
-        logger.debug "Stopping staging task #{task}"
+        logger.debug("Stopping staging task #{task}")
         task.stop
       end
     end

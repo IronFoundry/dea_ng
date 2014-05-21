@@ -70,13 +70,18 @@ module Buildpacks
     end
 
     def compile_with_timeout(timeout)
-      Timeout.timeout(timeout) do
-        build_pack.compile
+      begin
+        Timeout.timeout(timeout) do
+          build_pack.compile
+        end
+      rescue Timeout::Error
+        Process.kill(15, -Process.getpgid(Process.pid))
       end
     end
 
     def save_buildpack_info
       buildpack_info = {
+        "buildpack_path" => build_pack.path,
         "detected_buildpack"  => build_pack.name,
         "start_command" => start_command
       }
@@ -127,7 +132,7 @@ module Buildpacks
 
     def buildpack_with_key(buildpack_key)
       detected_buildpack_dir = buildpack_dirs.find do |dir|
-        File.basename(dir) == specified_buildpack_key
+        File.basename(dir) == buildpack_key
       end
       Buildpacks::Installer.new(detected_buildpack_dir, app_dir, cache_dir)
     end

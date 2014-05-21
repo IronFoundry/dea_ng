@@ -63,19 +63,16 @@ module Dea
       Promise.resolve(staging_promise) do |error, _|
         begin
           if error
-            logger.info 'staging.task.failed',
-              error: error, backtrace: error.backtrace
+            logger.info('staging.task.failed', error: error, backtrace: error.backtrace)
           else
-            logger.info 'staging.task.completed'
+            logger.info('staging.task.completed')
           end
 
           unless error
             begin
               resolve_staging_upload
             rescue => e
-              logger.info 'staging.task.upload-failed',
-                error: e,
-                backtrace: e.backtrace
+              logger.info('staging.task.upload-failed', error: e, backtrace: e.backtrace)
 
               error = e
             end
@@ -94,6 +91,13 @@ module Dea
     def workspace
       @workspace ||= StagingTaskWorkspace.new(
         config['base_dir'],
+        staging_message.properties
+      )
+    end
+
+    def buildpack_manager
+      @buildpack_manager ||= BuildpackManager.new(
+        workspace.admin_buildpacks_dir,
         staging_message,
         @buildpacks_in_use
       )
@@ -113,6 +117,14 @@ module Dea
 
     def detected_buildpack
       task_info['detected_buildpack']
+    end
+
+    def buildpack_path
+      task_info['buildpack_path']
+    end
+
+    def buildpack_key
+      staging_message.buildpack_key || buildpack_manager.buildpack_key(buildpack_path)
     end
 
     def memory_limit_mb
@@ -138,7 +150,7 @@ module Dea
 
     def stop(&callback)
       stopping_promise = Promise.new do |p|
-        logger.info 'staging.task.stopped'
+        logger.info('staging.task.stopped')
 
         @after_complete_callback = nil # Unregister after complete callback
         promise_stop.resolve if container.handle
@@ -183,7 +195,7 @@ module Dea
       Promise.new do |p|
         script = promise_prepare_staging_log_script(workspace.warden_staged_dir, workspace.warden_staging_log)
 
-        logger.info 'staging.task.preparing-log', script: script
+        logger.info('staging.task.preparing-log', script: script)
 
         container.run_script(:app, script)
 
@@ -197,7 +209,7 @@ module Dea
         # See: https://github.com/heroku/heroku-buildpack-python/blob/master/bin/compile#L46
         script = promise_app_dir_script
 
-        logger.info 'staging.task.making-app-dir', script: script
+        logger.info('staging.task.making-app-dir', script: script)
 
         container.run_script(:app, script, true)
 
@@ -208,31 +220,39 @@ module Dea
     def promise_stage
       Promise.new do |p|
         script = staging_command
-        logger.debug 'staging.task.execute-staging', script: script
+        logger.debug('staging.task.execute-staging', script: script)
 
         spawn_response = container.spawn(script)
         @warden_job_id = spawn_response.job_id
         bootstrap.snapshot.save
+
+        staging_timer = EM::Timer.new(staging_timeout) do
+          logger.error('staging.task.execute-staging.timed-out', timeout: staging_timeout, handle: container.handle)
+
+          Fiber.new do
+            begin
+              promise_stop(true).resolve
+            ensure
+              p.fail('Staging in container timed out')
+            end
+          end.resume
+        end
+
         begin
-          Timeout.timeout(staging_timeout + staging_timeout_grace_period) do
-            container.link_or_raise(@warden_job_id)
-          end
+          container.link_or_raise(@warden_job_id)
           p.deliver
         rescue Container::WardenError => staging_error
           logger.error('staging.task.execute-staging.failed', error: staging_error)
           p.fail(staging_error)
-        rescue Timeout::Error => timeout_error
-          logger.error('staging.task.execute-staging.timed-out', error: timeout_error)
-          p.fail(timeout_error)
+        ensure
+          staging_timer.cancel
         end
       end
     end
 
     def promise_task_log
       Promise.new do |p|
-        logger.info 'staging.task-log.copying-out',
-          source: workspace.warden_staging_log,
-          destination: workspace.staging_log_path
+        logger.info('staging.task-log.copying-out', source: workspace.warden_staging_log, destination: workspace.staging_log_path)
 
         copy_out_request(workspace.warden_staging_log, File.dirname(workspace.staging_log_path))
         p.deliver
@@ -241,9 +261,7 @@ module Dea
 
     def promise_staging_info
       Promise.new do |p|
-        logger.info 'staging.task-info.copying-out',
-          source: workspace.warden_staging_info,
-          destination: workspace.staging_info_path
+        logger.info('staging.task-info.copying-out', source: workspace.warden_staging_info, destination: workspace.staging_info_path)
 
         copy_out_request(workspace.warden_staging_info, File.dirname(workspace.staging_info_path))
         p.deliver
@@ -252,7 +270,7 @@ module Dea
 
     def promise_unpack_app
       Promise.new do |p|
-        logger.info 'staging.task.unpacking-app', destination: workspace.warden_unstaged_dir
+        logger.info('staging.task.unpacking-app', destination: workspace.warden_unstaged_dir)
 
         script = promise_unpack_app_script(
           workspace.downloaded_app_package_path,
@@ -272,7 +290,7 @@ module Dea
           workspace.warden_staged_dir,
           workspace.warden_staged_droplet
         )
-        logger.info 'staging.task.packing-droplet'
+        logger.info('staging.task.packing-droplet')
         container.run_script(:app, script)
         p.deliver
       end
@@ -280,25 +298,21 @@ module Dea
 
     def promise_app_download
       Promise.new do |p|
-        logger.info 'staging.app-download.starting', uri: staging_message.download_uri
+        logger.info('staging.app-download.starting', uri: staging_message.download_uri)
 
         download_destination = build_download_destination_path
 
         Download.new(staging_message.download_uri, download_destination, nil, logger).download! do |error|
           if error
-            logger.debug 'staging.app-download.failed',
-              duration: p.elapsed_time,
-              error: error,
-              backtrace: error.backtrace
+            logger.debug('staging.app-download.failed', duration: p.elapsed_time, error: error, backtrace: error.backtrace)
 
             p.fail(error)
           else
             File.rename(download_destination.path, workspace.downloaded_app_package_path)
             File.chmod(0744, workspace.downloaded_app_package_path)
 
-            logger.debug 'staging.app-download.completed',
-              duration: p.elapsed_time,
-              destination: workspace.downloaded_app_package_path
+            logger.debug('staging.app-download.completed',
+                         duration: p.elapsed_time, destination: workspace.downloaded_app_package_path)
 
             p.deliver
           end
@@ -319,23 +333,17 @@ module Dea
 
     def promise_app_upload
       Promise.new do |p|
-        logger.info 'staging.droplet-upload.starting',
-          source: workspace.staged_droplet_path,
-          destination: staging_message.upload_uri
+        logger.info('staging.droplet-upload.starting',
+                    source: workspace.staged_droplet_path, destination: staging_message.upload_uri)
 
         Upload.new(workspace.staged_droplet_path, staging_message.upload_uri, logger).upload! do |error|
           if error
-            logger.info 'staging.task.droplet-upload-failed',
-              duration: p.elapsed_time,
-              destination: staging_message.upload_uri,
-              error: error,
-              backtrace: error.backtrace
+            logger.info('staging.task.droplet-upload-failed',
+                        duration: p.elapsed_time, destination: staging_message.upload_uri, error: error, backtrace: error.backtrace)
 
             p.fail(error)
           else
-            logger.info 'staging.task.droplet-upload-completed',
-              duration: p.elapsed_time,
-              destination: staging_message.upload_uri
+            logger.info('staging.task.droplet-upload-completed', duration: p.elapsed_time, destination: staging_message.upload_uri)
 
             p.deliver
           end
@@ -345,23 +353,18 @@ module Dea
 
     def promise_buildpack_cache_upload
       Promise.new do |p|
-        logger.info 'staging.buildpack-cache-upload.starting',
-          source: workspace.staged_buildpack_cache_path,
-          destination: staging_message.buildpack_cache_upload_uri
+        logger.info('staging.buildpack-cache-upload.starting',
+                    source: workspace.staged_buildpack_cache_path, destination: staging_message.buildpack_cache_upload_uri)
 
         Upload.new(workspace.staged_buildpack_cache_path, staging_message.buildpack_cache_upload_uri, logger).upload! do |error|
           if error
-            logger.info 'staging.task.buildpack-cache-upload-failed',
-              duration: p.elapsed_time,
-              destination: staging_message.buildpack_cache_upload_uri,
-              error: error,
-              backtrace: error.backtrace
+            logger.info('staging.task.buildpack-cache-upload-failed',
+                        duration: p.elapsed_time, destination: staging_message.buildpack_cache_upload_uri, error: error, backtrace: error.backtrace)
 
             p.fail(error)
           else
-            logger.info 'staging.task.buildpack-cache-upload-completed',
-              duration: p.elapsed_time,
-              destination: staging_message.buildpack_cache_upload_uri
+            logger.info('staging.task.buildpack-cache-upload-completed',
+                        duration: p.elapsed_time, destination: staging_message.buildpack_cache_upload_uri)
 
             p.deliver
           end
@@ -371,26 +374,21 @@ module Dea
 
     def promise_buildpack_cache_download
       Promise.new do |p|
-        logger.info 'staging.buildpack-cache-download.starting',
-          uri: staging_message.buildpack_cache_download_uri
+        logger.info('staging.buildpack-cache-download.starting', uri: staging_message.buildpack_cache_download_uri)
 
         download_destination = Tempfile.new('buildpack-cache', workspace.tmpdir)
 
         Download.new(staging_message.buildpack_cache_download_uri, download_destination, nil, logger).download! do |error|
           if error
-            logger.debug 'staging.buildpack-cache-download.failed',
-              duration: p.elapsed_time,
-              uri: staging_message.buildpack_cache_download_uri,
-              error: error,
-              backtrace: error.backtrace
+            logger.debug('staging.buildpack-cache-download.failed',
+                         duration: p.elapsed_time, uri: staging_message.buildpack_cache_download_uri, error: error, backtrace: error.backtrace)
 
           else
             File.rename(download_destination.path, workspace.downloaded_buildpack_cache_path)
             File.chmod(0744, workspace.downloaded_buildpack_cache_path)
 
-            logger.debug 'staging.buildpack-cache-download.completed',
-              duration: p.elapsed_time,
-              destination: workspace.downloaded_buildpack_cache_path
+            logger.debug('staging.buildpack-cache-download.completed',
+                         duration: p.elapsed_time, destination: workspace.downloaded_buildpack_cache_path)
           end
 
           p.deliver
@@ -400,9 +398,7 @@ module Dea
 
     def promise_copy_out
       Promise.new do |p|
-        logger.info 'staging.droplet.copying-out',
-          source: workspace.warden_staged_droplet,
-          destination: workspace.staged_droplet_dir
+        logger.info('staging.droplet.copying-out', source: workspace.warden_staged_droplet, destination: workspace.staged_droplet_dir)
 
         copy_out_request(workspace.warden_staged_droplet, workspace.staged_droplet_dir)
 
@@ -415,8 +411,7 @@ module Dea
         @droplet_sha1 = Digest::SHA1.file(workspace.staged_droplet_path).hexdigest
         bootstrap.droplet_registry[@droplet_sha1].local_copy(workspace.staged_droplet_path) do |error|
           if error
-            logger.error 'staging.droplet.copy-failed',
-              error: error, backtrace: error.backtrace
+            logger.error('staging.droplet.copy-failed', error: error, backtrace: error.backtrace)
 
             p.fail
           else
@@ -462,8 +457,7 @@ module Dea
     def promise_unpack_buildpack_cache
       Promise.new do |p|
         if File.exists?(workspace.downloaded_buildpack_cache_path)
-          logger.info 'staging.buildpack-cache.unpack',
-            destination: workspace.warden_cache
+          logger.info('staging.buildpack-cache.unpack', destination: workspace.warden_cache)
           script = promise_unpack_buildpack_cache_script(workspace.downloaded_buildpack_cache_path,
                                                          workspace.warden_staging_log, 
                                                          workspace.warden_cache)
@@ -476,9 +470,8 @@ module Dea
 
     def promise_copy_out_buildpack_cache
       Promise.new do |p|
-        logger.info 'staging.buildpack-cache.copying-out',
-          source: workspace.warden_staged_buildpack_cache,
-          destination: workspace.staged_droplet_path
+        logger.info('staging.buildpack-cache.copying-out',
+                    source: workspace.warden_staged_buildpack_cache, destination: workspace.staged_droplet_path)
 
         copy_out_request(workspace.warden_staged_buildpack_cache, workspace.staged_droplet_dir)
 
@@ -505,7 +498,7 @@ module Dea
     end
 
     def snapshot_attributes
-      logger.info 'snapshot_attributes', properties: staging_message.properties
+      logger.info('snapshot_attributes', properties: staging_message.properties)
       {
         'staging_message' => staging_message.to_hash,
         'warden_container_path' => container.path,
@@ -522,7 +515,7 @@ module Dea
     end
 
     def resolve_staging_setup
-      workspace.prepare
+      workspace.prepare(buildpack_manager)
       with_network = false
       container.create_container(
         bind_mounts: bind_mounts,
@@ -576,10 +569,6 @@ module Dea
 
     def run_plugin_path
       File.join(workspace.buildpack_dir, 'bin/run')
-    end
-
-    def staging_timeout_grace_period
-      60
     end
 
     def loggregator_emit_result(result)

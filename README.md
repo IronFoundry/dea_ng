@@ -59,7 +59,7 @@ The following is a partial list of the keys that are read from the YAML file:
 ### Running the DEA in the provided Vagrant VM
 
 When contributing to DEA it's useful to run it as a standalone
-component. This test configuration uses [Vagrant >=1.1][vagrant].
+component.
 
 [vagrant]: http://docs.vagrantup.com/v2/installation/index.html
 
@@ -73,22 +73,9 @@ cd dea_ng
 git submodule update --init
 bundle install
 
-# check that your version of vagrant is 1.1 or greater
+# check that your version of Vagrant is 1.5 or greater
 vagrant --version
 
-# create your test VM
-bundle exec rake test_vm
-```
-
-Creating the test VM is likely to take a while.
-
-Note that if the rake test_vm step fails and you see an error like
-"undefined method `configure' for Vagrant" or
-"found character that cannot start any token while scanning for the next token"
-it means the version of Vagrant is too old.
-Install Vagrant version 1.1 or higher.
-
-```shell
 # initialize the test VM
 cd ~/workspace/dea_ng
 vagrant up
@@ -96,23 +83,25 @@ vagrant up
 # shell into the VM
 vagrant ssh
 
-# start warden
-cd /warden
 # pull the latest warden
-sudo git checkout master
-sudo git pull
-cd warden
-bundle
-rvmsudo bundle exec rake warden:start[config/test_vm.yml] 2>&1 > /tmp/warden.log &
+cd /warden
+git checkout master
+git pull
+
+# start warden
+cd /warden/warden
+sudo bundle install
+sudo bundle exec rake warden:start[config/test_vm.yml] &> /tmp/warden.log &
 
 # start the DEA's dependencies
 cd /vagrant
-bundle install
-rvmsudo foreman start > /tmp/foreman.log &
+sudo bundle install
+sudo bundle exec foreman start &> /tmp/foreman.log &
 ```
 
 To run the tests (unit, integration or all):
 ```
+bundle install
 bundle exec rspec spec/unit
 LOCAL_DEA=true bundle exec rspec spec/integration
 ```

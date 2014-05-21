@@ -9,7 +9,7 @@ describe Dea::Instance do
 
   let(:connection) { double('connection', :promise_call => delivering_promise) }
   let(:snapshot) do
-      double('snapshot', :save => {})
+    double('snapshot', :save => {})
   end
   let(:bootstrap) do
     double('bootstrap', :config => config, :snapshot => snapshot)
@@ -402,7 +402,7 @@ describe Dea::Instance do
     def execute_health_check
       error = result = nil
 
-      em do
+      with_event_machine do
         Dea::Promise.resolve(instance.promise_health_check) do |error_, result_|
           error, result = error_, result_
           done
@@ -578,7 +578,7 @@ describe Dea::Instance do
     def expect_start
       error = nil
 
-      em do
+      with_event_machine do
         instance.start do |error_|
           error = error_
           done
@@ -651,7 +651,7 @@ describe Dea::Instance do
         with_network = true
         instance.container.should_receive(:create_container).
           with(bind_mounts: expected_bind_mounts,
-               limit_cpu: instance.config['instance']['cpu_limit_shares'],
+               limit_cpu: instance.cpu_shares,
                byte: instance.disk_limit_in_bytes,
                inode: instance.config.instance_disk_inode_limit,
                limit_memory: instance.memory_limit_in_bytes,
@@ -679,6 +679,39 @@ describe Dea::Instance do
         }.to change {
           instance.attributes['warden_handle']
         }.from(nil).to('some-handle')
+      end
+    end
+
+    describe 'cpu_shares' do
+      before do
+        instance.config['instance']['max_cpu_share_limit'] = 256
+        instance.config['instance']['min_cpu_share_limit'] = 1
+        instance.config['instance']['memory_to_cpu_share_ratio'] = 8
+      end
+
+      it 'is calcuted from app memory divided by share_factor' do
+        # app memory (512MB) / share factor (8)
+        expect(instance.cpu_shares).to eq(64)
+      end
+
+      context 'when the calculated cpu shares exceed max_share_limit' do
+        before do
+          instance.config['instance']['max_cpu_share_limit'] = 2
+        end
+
+        it 'returns max_share_limit' do
+          expect(instance.cpu_shares).to eq(2)
+        end
+      end
+
+      context 'when the calculated cpu shares are below min_share_limit' do
+        before do
+          instance.config['instance']['min_cpu_share_limit'] = 726
+        end
+
+        it 'returns min_share_limit' do
+          expect(instance.cpu_shares).to eq(726)
+        end
       end
     end
 
@@ -1022,7 +1055,7 @@ describe Dea::Instance do
         expect_start.to raise_error
 
         # Instance exit description should be set to the failure message
-        instance.exit_description.should == 'failed to start accepting connections'
+        instance.exit_description.should == Dea::HealthCheckFailed.new.to_s
       end
     end
 
@@ -1068,7 +1101,7 @@ describe Dea::Instance do
     def expect_stop
       error = nil
 
-      em do
+      with_event_machine do
         instance.stop do |error_|
           error = error_
           done
@@ -1332,7 +1365,7 @@ describe Dea::Instance do
     def expect_destroy
       error = nil
 
-      em do
+      with_event_machine do
         instance.destroy do |error_|
           error = error_
           done
@@ -1396,7 +1429,7 @@ describe Dea::Instance do
     def expect_crash_handler
       error = nil
 
-      em do
+      with_event_machine do
         instance.crash_handler do |error_|
           error = error_
           done

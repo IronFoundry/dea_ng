@@ -40,7 +40,7 @@ module Dea::Responders
       logger = logger_for_app(app_id)
 
       Dea::Loggregator.emit(app_id, "Got staging request for app with id #{app_id}")
-      logger.info('staging.handle.start', request: message)
+      logger.debug('staging.handle.start', request: message.inspect)
 
       task = Dea::StagingTask.new(bootstrap, dir_server, message, buildpacks_in_use, logger)
       unless resource_manager.could_reserve?(task.memory_limit_mb, task.disk_limit_mb)
@@ -126,6 +126,7 @@ module Dea::Responders
           task_id: task.task_id,
           error: (error.to_s if error),
           detected_buildpack: task.detected_buildpack,
+          buildpack_key: task.buildpack_key,
           droplet_sha1: task.droplet_sha1
         })
 
@@ -164,6 +165,7 @@ module Dea::Responders
         'task_id' => params[:task_id],
         'task_streaming_log_url' => params[:streaming_log_url],
         'detected_buildpack' => params[:detected_buildpack],
+        'buildpack_key' => params[:buildpack_key],
         'error' => params[:error],
         'droplet_sha1' => params[:droplet_sha1]
       )

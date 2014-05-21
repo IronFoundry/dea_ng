@@ -5,111 +5,67 @@ require "vcap/common"
 require "dea/env"
 require "dea/starting/start_message"
 require "dea/staging/staging_message"
-require "dea/utils/platform_compat"
 
 describe Dea::Env do
+  class NullExporter < Struct.new(:variables)
+    def export
+      variables.inject({}) { |h, a| h[a[0]] = a[1]; h }
+    end
+  end
+
+  let(:strategy) do
+    double("strategy",
+           vcap_application: {"fake vcap_application key" => "fake vcap_application value"},
+           message: start_message,
+           system_environment_variables: [%w(fake_key fake_value)]
+    )
+  end
+
+  let(:strategy_chooser) { double("strategy chooser", strategy: strategy) }
+
+  let(:env_exporter) { NullExporter }
+
   let(:service) do
     {
       "credentials" => {"uri" => "postgres://user:pass@host:5432/db"},
-      "options" => {},
       "label" => "elephantsql-n/a",
-      "provider" => "elephantsql",
-      "version" => "n/a",
-      "vendor" => "elephantsql",
       "plan" => "panda",
       "plan_option" => "plan_option",
       "name" => "elephantsql-vip-uat",
       "tags" => {"key" => "value"},
-      "syslog_drain_url" => "syslog://drain-url.example.com:514"
+      "syslog_drain_url" => "syslog://drain-url.example.com:514",
+      "blacklisted" => "blacklisted"
     }
   end
+
   let(:services) { [service] }
 
-  let(:environment) { ["A=one_value", "B=with spaces", "C=with'quotes\"double", "D=referencing $A", "E=with=equals", "F="] }
-  let(:debug) { nil }
+  let(:user_provided_environment) { ["fake_user_provided_key=fake_user_provided_value"] }
 
   let(:instance) do
     attributes = {"instance_id" => VCAP.secure_uuid}
     double(:instance, attributes: attributes, instance_container_port: 4567, state_starting_timestamp: Time.now.to_f)
   end
 
-  let(:starting_message) do
-    {
-      "droplet" => "fake-droplet-sha",
-      "tags" => {
-        "space" => "fake-space-sha"
-      },
-      "name" => "vip-uat-sidekiq",
-      "uris" => ["first_uri", "second_uri"],
-      "prod" => false,
-      "sha1" => nil,
-      "executableFile" => "deprecated",
-      "executableUri" => nil,
-      "version" => "fake-version-no",
+  let(:start_message) do
+    StartMessage.new(
       "services" => services,
       "limits" => {
         "mem" => 512,
-        "disk" => 1024,
-        "fds" => 16384},
-      "cc_partition" => "default",
-      "env" => environment,
-      "debug" => debug,
-      "index" => 0
-    }
+      },
+      "vcap_application" => {
+        "message vcap_application key" => "message vcap_application value",
+      },
+      "env" => user_provided_environment,
+    )
   end
 
-  subject(:env) { Dea::Env.new(StartMessage.new(starting_message), instance) }
+  subject(:env) { Dea::Env.new(start_message, instance, env_exporter, strategy_chooser) }
 
-  def self.it_exports(name, value)
-    it "exports $#{name} as #{value}" do
-      if platform == :Windows
-        example = %Q{$env:%s="%s"} % [name, value.to_s.gsub('"', '`"')]
-      else
-        example = %Q{export %s="%s"} % [name, value.to_s.gsub('"', '\"')]
-      end
-      expect(exported_variables).to include example
-    end
-  end
+  describe "#vcap_services" do
+    let(:vcap_services) { env.send(:vcap_services) }
 
-  def self.it_does_not_export(name)
-    it "does not export $#{name}" do
-      if platform == :Windows
-        example = %Q{$env:%s=.*} % [name]
-      else
-        example = %Q{export %s=.*} % [name]
-      end
-      expect(exported_variables.to_s).to_not match_regex example
-    end
-  end
-
-  def self.it_exports_with_substr(name, value_substr)
-    it "exports $#{name} which contains #{value_substr}" do
-      if platform == :Windows
-        # Windows uses PowerShell's double-quote strings, which requires escaping double-quotes in backticks.
-        name_regex = Regexp.new("^\\$env:%s" % [name])
-        value_substr = value_substr.gsub('"', '`"')
-      else
-        # Linux uses 'export', which requires the value to be in double-quotes. This means
-        # we need to handle escaping them in the generated JSON.
-        name_regex = Regexp.new("^export %s" % [name])
-        value_substr = value_substr.gsub('"', '\"')
-      end
-
-      expect(exported_variables.split('\n').find_index { |str|
-        str =~ name_regex && str.include?(value_substr)
-      }).to_not be_nil
-    end
-  end
-
-  context "when running from the starting (instance) task" do
-    subject(:env) { Dea::Env.new(StartMessage.new(starting_message), instance) }
-
-    its(:strategy_env) { should be_an_instance_of Dea::RunningEnv }
-
-    describe "#vcap_services" do
-      let(:vcap_services) { env.send(:vcap_services) }
-
-      keys = %W(
+    keys = %W(
         name
         label
         tags
@@ -119,363 +75,97 @@ describe Dea::Env do
         syslog_drain_url
       )
 
-      keys.each do |key|
-        it "includes #{key.inspect}" do
-          vcap_services[service["label"]].first.should include(key)
-        end
+    keys.each do |key|
+      it "includes #{key.inspect}" do
+        vcap_services[service["label"]].first.should include(key)
+      end
+    end
+
+    it "doesn't include unknown keys" do
+      expect(service).to have_key("blacklisted")
+      vcap_services[service["label"]].first.keys.should_not include("blacklisted")
+    end
+
+    describe "grouping" do
+      let(:services) do
+        [
+          service.merge("label" => "l1"),
+          service.merge("label" => "l1"),
+          service.merge("label" => "l2"),
+        ]
       end
 
-      it "doesn't include unknown keys" do
+      it "should group services by label" do
+        vcap_services.should have(2).groups
+        vcap_services["l1"].should have(2).services
+        vcap_services["l2"].should have(1).service
+      end
+    end
+
+    describe "ignoring" do
+      let(:services) do
+        [service.merge("name" => nil)]
+      end
+
+      it "should ignore keys with nil values" do
         vcap_services[service["label"]].should have(1).service
-        vcap_services[service["label"]].first.keys.should_not include("invalid")
-      end
-
-      describe "grouping" do
-        let(:services) do
-          [
-            service.merge("label" => "l1"),
-            service.merge("label" => "l1"),
-            service.merge("label" => "l2"),
-          ]
-        end
-
-        it "should group services by label" do
-          vcap_services.should have(2).groups
-          vcap_services["l1"].should have(2).services
-          vcap_services["l2"].should have(1).service
-        end
-      end
-
-      describe "ignoring" do
-        let(:services) do
-          [service.merge("name" => nil)]
-        end
-
-        it "should ignore keys with nil values" do
-          vcap_services[service["label"]].should have(1).service
-          vcap_services[service["label"]].first.keys.should_not include("name")
-        end
-      end
-    end
-
-    describe "#vcap_application" do
-      let(:vcap_application) { env.send(:vcap_application) }
-
-      it "returns a Hash" do
-        vcap_application.should be_a(Hash)
-      end
-
-      keys = %W[
-        instance_id
-        instance_index
-        application_version
-        application_name
-        application_uris
-      ]
-
-      keys.each do |key|
-        it "includes #{key.inspect}" do
-          vcap_application.should include(key)
-        end
-      end
-
-      it "includes the time the instance was started" do
-        vcap_application["started_at"].should be_a(Time)
-        vcap_application["started_at_timestamp"].should be_a(Integer)
-      end
-
-      it "includes the host and port the instance should listen on" do
-        vcap_application["host"].should be
-        vcap_application["port"].should == 4567
-      end
-
-      it "includes the resource limits" do
-        vcap_application["limits"].should be_a(Hash)
-      end
-
-      describe "translation" do
-        translations = {
-          "application_version"  => "version",
-          "application_name"     => "name",
-          "application_uris"     => "uris",
-          "application_users"    => "users",
-
-          "started_at"           => "start",
-          "started_at_timestamp" => "state_timestamp",
-        }
-
-        translations.each do |from, to|
-          it "should translate #{from.inspect} to #{to.inspect}" do
-            vcap_application[to].should == vcap_application[from]
-          end
-        end
-      end
-    end
-
-    def self.run_starting_task_exported_system_environment_variables
-      it_exports_with_substr "VCAP_APPLICATION", "\"instance_index\":0"
-      it_exports_with_substr "VCAP_SERVICES", "\"plan\":\"panda\""
-      it_exports "VCAP_APP_HOST", "0.0.0.0"
-      it_exports "VCAP_APP_PORT", "4567"
-      it_does_not_export "VCAP_DEBUG_IP"
-      it_does_not_export "VCAP_DEBUG_PORT"
-      it_exports "PORT", "4567"
-      it_exports "MEMORY_LIMIT", "512m"
-      it_exports "HOME", "$PWD/app"
-      it_exports "TMPDIR", "$PWD/tmp"
-
-      context "when it has a DB" do
-        it_exports "DATABASE_URL", "postgres://user:pass@host:5432/db"
-      end
-
-      context "when it does NOT have a DB" do
-        let(:services) { [] }
-
-        it_does_not_export "DATABASE_URL"
-      end
-    end
-
-    def self.run_starting_task_exported_user_environment_variables
-      it_exports "A", "one_value"
-      it_exports "B", "with spaces"
-      it_exports "C", %Q[with'quotes"double]
-      it_exports "D", "referencing $A"
-      it_exports "E", "with=equals"
-      it_exports "F", ""
-    end
-
-    describe "#exported_system_environment_variables" do
-      platform_specific(:platform)
-
-      let(:exported_variables) { env.exported_system_environment_variables }
-
-      context "on linux" do
-        let(:platform) { :Linux }
-        run_starting_task_exported_system_environment_variables
-      end
-
-      context "on windows" do
-        let(:platform) { :Windows }
-        run_starting_task_exported_system_environment_variables
-      end
-    end
-
-    describe "#exported_user_environment_variables" do
-      platform_specific(:platform)
-
-      let(:exported_variables) { env.exported_user_environment_variables }
-
-      context "on linux" do
-        let(:platform) { :Linux }
-        run_starting_task_exported_user_environment_variables
-      end
-
-      context "on windows" do
-        let(:platform) { :Windows }
-        run_starting_task_exported_user_environment_variables
+        vcap_services[service["label"]].first.keys.should_not include("name")
       end
     end
   end
 
-  context "when running from the staging task" do
-    let(:staging_message) do
-      {
-        "app_id" => "fake-app-id",
-        "task_id" => "fake-task-id",
-        "properties" => {
-          "services" => services,
-          "buildpack" => nil,
-          "resources" => {
-            "memory" => 512,
-            "disk" => 1024,
-            "fds" => 16384
-          },
-          "environment" => environment,
-          "meta" => {
-            "command" => "some_command"
-          }
-        },
-        "download_uri" => "https://download_uri",
-        "upload_uri" => "http://upload_uri",
-        "buildpack_cache_download_uri" => "https://buildpack_cache_download_uri",
-        "buildpack_cache_upload_uri" => "http://buildpack_cache_upload_uri",
-        "start_message" => starting_message
-      }
+  describe "#exported_system_environment_variables" do
+    let(:exported_system_vars) { env.exported_system_environment_variables }
+
+    it "includes the system_environment_variables from the strategy" do
+      exported_system_vars["fake_key"].should match("fake_value")
     end
 
-    let(:staging_task) do
-      staging_task = double(:staging_task)
-      staging_task.stub(:is_a?).with(Dea::StagingTask) { true }
-      staging_task.stub(:staging_config) { {"environment" => {"BUILDPACK_CACHE" => ""}} }
-      staging_task.stub(:staging_timeout) { 900 }
-      staging_task
+    it "exports MEMORY_LIMIT" do
+      exported_system_vars["MEMORY_LIMIT"].should match("512m")
     end
 
-    subject(:env) { Dea::Env.new(StagingMessage.new(staging_message), staging_task) }
+    it "exports VCAP_APPLICATION containing strategy vcap_application" do
+      exported_system_vars["VCAP_APPLICATION"].should match('"fake vcap_application key":"fake vcap_application value"')
+    end
 
-    its(:strategy_env) { should be_an_instance_of Dea::StagingEnv }
+    it "exports VCAP_APPLICATION containing message vcap_application" do
+      exported_system_vars["VCAP_APPLICATION"].should match('"message vcap_application key":"message vcap_application value"')
+    end
 
-    describe "#vcap_services" do
-      let(:vcap_services) { env.send(:vcap_services) }
+    it "exports VCAP_SERVICES" do
+      exported_system_vars["VCAP_SERVICES"].should match(%r{\"plan\":\"panda\"})
+    end
 
-      keys = %W(
-        name
-        label
-        tags
-        plan
-        plan_option
-        credentials
-      )
-
-      keys.each do |key|
-        it "includes #{key.inspect}" do
-          vcap_services[service["label"]].first.should include(key)
-        end
-      end
-
-      it "doesn't include unknown keys" do
-        vcap_services[service["label"]].should have(1).service
-        vcap_services[service["label"]].first.keys.should_not include("invalid")
-      end
-
-      describe "grouping" do
-        let(:services) do
-          [
-            service.merge("label" => "l1"),
-            service.merge("label" => "l1"),
-            service.merge("label" => "l2"),
-          ]
-        end
-
-        it "should group services by label" do
-          vcap_services.should have(2).groups
-          vcap_services["l1"].should have(2).services
-          vcap_services["l2"].should have(1).service
-        end
-      end
-
-      describe "ignoring" do
-        let(:services) do
-          [service.merge("name" => nil)]
-        end
-
-        it "should ignore keys with nil values" do
-          vcap_services[service["label"]].should have(1).service
-          vcap_services[service["label"]].first.keys.should_not include("name")
-        end
+    context "when it has a DB" do
+      it "exports DATABASE_URL" do
+        exported_system_vars["DATABASE_URL"].should match("postgres://user:pass@host:5432/db")
       end
     end
 
-    describe "#vcap_application" do
-      let(:vcap_application) { env.send(:vcap_application) }
+    context "when it does NOT have a DB" do
+      let(:services) { [] }
 
-      it "returns a Hash" do
-        vcap_application.should be_a(Hash)
-      end
-
-      keys = %W[
-        application_version
-        application_name
-        application_uris
-      ]
-
-      keys.each do |key|
-        it "includes #{key.inspect}" do
-          vcap_application.should include(key)
-        end
-      end
-
-      it "includes the resource limits" do
-        vcap_application["limits"].should be_a(Hash)
-      end
-
-      describe "translation" do
-        translations = {
-          "application_version"  => "version",
-          "application_name"     => "name",
-          "application_uris"     => "uris",
-          "application_users"    => "users",
-        }
-
-        translations.each do |from, to|
-          it "should translate #{from.inspect} to #{to.inspect}" do
-            vcap_application[to].should == vcap_application[from]
-          end
-        end
+      it "does not export DATABASE_URL" do
+        exported_system_vars.should_not have_key("DATABASE_URL")
       end
     end
+  end
 
-    def self.run_staging_task_exported_system_environment_variables
-      it_exports_with_substr "VCAP_APPLICATION", "\"mem\":512"
-      it_exports_with_substr "VCAP_SERVICES", "\"plan\":\"panda\""
-      it_exports "MEMORY_LIMIT", "512m"
+  describe "#exported_user_environment_variables" do
+    let(:exported_variables) { env.exported_user_environment_variables }
 
-      context "when it has a DB" do
-        it_exports "DATABASE_URL", "postgres://user:pass@host:5432/db"
-      end
-
-      context "when it does NOT have a DB" do
-        let(:services) { [] }
-
-        it_does_not_export "DATABASE_URL"
-      end
-    end
-
-    def self.run_staging_task_exported_user_environment_variables
-      it_exports "A", "one_value"
-      it_exports "B", "with spaces"
-      it_exports "C", %Q[with'quotes"double]
-      it_exports "D", "referencing $A"
-      it_exports "E", "with=equals"
-      it_exports "F", ""
-    end
-
-    describe "#exported_system_environment_variables" do
-      platform_specific(:platform)
-
-      let(:exported_variables) { env.exported_system_environment_variables }
-
-      context "on linux" do
-        let(:platform) { :Linux }
-        run_staging_task_exported_system_environment_variables
-      end
-
-      context "on windows" do
-        let(:platform) { :Windows }
-        run_staging_task_exported_system_environment_variables
-      end
-    end
-
-    describe "#user_environment_variables" do
-      platform_specific(:platform)
-
-      let(:exported_variables) { env.exported_user_environment_variables }
-
-      context "on linux" do
-        let(:platform) { :Linux }
-        run_staging_task_exported_user_environment_variables
-      end
-
-      context "on windows" do
-        let(:platform) { :Windows }
-        run_staging_task_exported_user_environment_variables
-      end
+    it "includes the user defined variables" do
+      exported_variables["fake_user_provided_key"].should match("fake_user_provided_value")
     end
   end
 
   describe "exported_environment_variables" do
-    let(:environment) { ["PORT=stupid idea"] }
-    platform_specific(:platform)
-    let(:exported_variables) { env.exported_environment_variables }
+    let(:user_provided_environment) { ["PORT=stupid idea"] }
+    subject(:env) { Dea::Env.new(start_message, instance, env_exporter) }
 
-    context "on linux" do
-      let(:platform) { :Linux }
-      it_exports "PORT", "stupid idea"
-    end
-
-    context "on windows" do
-      let(:platform) { :Windows }
-      it_exports "PORT", "stupid idea"
+    it "exports PORT" do
+      env.exported_environment_variables["PORT"].should match("stupid idea")
     end
   end
 end

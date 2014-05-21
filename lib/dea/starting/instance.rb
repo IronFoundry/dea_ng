@@ -472,7 +472,7 @@ module Dea
 
     def start(&callback)
       p = Promise.new do
-        logger.info 'droplet.starting'
+        logger.info('droplet.starting')
 
         promise_state(State::BORN, State::STARTING).resolve
 
@@ -532,7 +532,7 @@ module Dea
                         }
         container.create_container(
           bind_mounts: bind_mounts + config['bind_mounts'],
-          limit_cpu: config['instance']['cpu_limit_shares'],
+          limit_cpu: cpu_shares,
           byte: disk_limit_in_bytes,
           inode: config.instance_disk_inode_limit,
           limit_memory: memory_limit_in_bytes,
@@ -577,7 +577,7 @@ module Dea
 
     def stop(&callback)
       p = Promise.new do
-        logger.info 'droplet.stopping'
+        logger.info('droplet.stopping')
 
         promise_exec_hook_script('before_stop').resolve
 
@@ -811,6 +811,16 @@ module Dea
 
     def computed_pcpu
       stat_collector.computed_pcpu
+    end
+
+    def cpu_shares
+      calculated_shares = limits['mem'].to_i / config['instance']['memory_to_cpu_share_ratio']
+      if calculated_shares > config['instance']['max_cpu_share_limit']
+        return config['instance']['max_cpu_share_limit']
+      elsif calculated_shares < config['instance']['min_cpu_share_limit']
+        return config['instance']['min_cpu_share_limit']
+      end
+      calculated_shares
     end
 
     def stat_collector
