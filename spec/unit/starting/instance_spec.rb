@@ -46,8 +46,8 @@ describe Dea::Instance do
 
       # Fixture to make sure Dea::Instance.create_from_message doesn't throw up
       defaults = {
-        'index' => 0,
-        'droplet' => 1,
+          'index' => 0,
+          'droplet' => 1,
       }
 
       message.stub(:data).and_return(defaults.merge(start_message_data))
@@ -59,7 +59,7 @@ describe Dea::Instance do
     describe 'instance attributes' do
       let(:start_message_data) do
         {
-          'index' => 37,
+            'index' => 37,
         }
       end
 
@@ -70,11 +70,11 @@ describe Dea::Instance do
     describe 'application attributes' do
       let(:start_message_data) do
         {
-          'droplet' => 37,
-          'version' => 'some_version',
-          'name' => 'my_application',
-          'uris' => ['foo.com', 'bar.com'],
-          'users' => ['john@doe.com'],
+            'droplet' => 37,
+            'version' => 'some_version',
+            'name' => 'my_application',
+            'uris' => ['foo.com', 'bar.com'],
+            'users' => ['john@doe.com'],
         }
       end
 
@@ -87,7 +87,7 @@ describe Dea::Instance do
     describe 'instance data from message data' do
       let(:start_message_data) do
         {
-          'droplet' => 37
+            'droplet' => 37
         }
       end
 
@@ -97,8 +97,8 @@ describe Dea::Instance do
     describe 'droplet attributes' do
       let(:start_message_data) do
         {
-          'sha1' => 'deadbeef',
-          'executableUri' => 'http://foo.com/file.ext',
+            'sha1' => 'deadbeef',
+            'executableUri' => 'http://foo.com/file.ext',
         }
       end
 
@@ -109,7 +109,7 @@ describe Dea::Instance do
     describe 'start_command from message data' do
       let(:start_message_data) do
         {
-          'start_command' => 'start command'
+            'start_command' => 'start command'
         }
       end
 
@@ -118,7 +118,7 @@ describe Dea::Instance do
       context 'when the value is nil' do
         let(:start_message_data) do
           {
-            'start_command' => nil
+              'start_command' => nil
           }
         end
 
@@ -138,9 +138,9 @@ describe Dea::Instance do
     describe 'other attributes' do
       let(:start_message_data) do
         {
-          'limits' => {'mem' => 1, 'disk' => 2, 'fds' => 3},
-          'env' => ['FOO=BAR', 'BAR=', 'QUX'],
-          'services' => {'name' => 'redis', 'type' => 'redis'},
+            'limits' => {'mem' => 1, 'disk' => 2, 'fds' => 3},
+            'env' => ['FOO=BAR', 'BAR=', 'QUX'],
+            'services' => {'name' => 'redis', 'type' => 'redis'},
         }
       end
 
@@ -154,9 +154,9 @@ describe Dea::Instance do
     describe 'container attributes' do
       let(:attributes) do
         valid_instance_attributes.merge(
-          'warden_handle' => 'abc',
-          'instance_host_port' => 1234,
-          'instance_container_port' => 5678,
+            'warden_handle' => 'abc',
+            'instance_host_port' => 1234,
+            'instance_container_port' => 5678,
         )
       end
 
@@ -243,7 +243,7 @@ describe Dea::Instance do
       end
     end
 
-    [states::STOPPED, states::CRASHED, states::DELETED,
+    [states::STOPPED, states::CRASHED,
      states::RESUMING].each do |state|
       context "when the state is #{state}" do
         before { instance.state = state }
@@ -269,7 +269,7 @@ describe Dea::Instance do
       end
     end
 
-    [states::STOPPED, states::DELETED, states::RESUMING].each do |state|
+    [states::STOPPED, states::RESUMING].each do |state|
       context "when the state is #{state}" do
         before { instance.state = state }
 
@@ -307,8 +307,8 @@ describe Dea::Instance do
     end
 
     [
-      Dea::Instance::State::RESUMING,
-      Dea::Instance::State::STARTING,
+        Dea::Instance::State::RESUMING,
+        Dea::Instance::State::STARTING,
     ].each do |state|
       it "starts when moving from #{state.inspect} to #{Dea::Instance::State::RUNNING.inspect}" do
         instance.stat_collector.should_receive(:start)
@@ -320,8 +320,8 @@ describe Dea::Instance do
 
     describe 'when started' do
       [
-        Dea::Instance::State::STOPPING,
-        Dea::Instance::State::CRASHED,
+          Dea::Instance::State::STOPPING,
+          Dea::Instance::State::CRASHED,
       ].each do |state|
         it "stops when the instance moves to the #{state.inspect} state" do
           instance.stat_collector.should_receive(:stop)
@@ -637,8 +637,8 @@ describe Dea::Instance do
         instance.config['bind_mounts'] = [{'src_path' => '/var/src/', 'dst_path' => '/var/dst'}]
 
         expected_bind_mounts = [
-          {'src_path' => droplet.droplet_dirname, 'dst_path' => droplet.droplet_dirname},
-          {'src_path' => '/var/src/', 'dst_path' => '/var/dst'}
+            {'src_path' => droplet.droplet_dirname, 'dst_path' => droplet.droplet_dirname},
+            {'src_path' => '/var/src/', 'dst_path' => '/var/dst'}
         ]
 
         expected_logging = {
@@ -650,13 +650,13 @@ describe Dea::Instance do
         }
         with_network = true
         instance.container.should_receive(:create_container).
-          with(bind_mounts: expected_bind_mounts,
-               limit_cpu: instance.cpu_shares,
-               byte: instance.disk_limit_in_bytes,
-               inode: instance.config.instance_disk_inode_limit,
-               limit_memory: instance.memory_limit_in_bytes,
-               setup_network: with_network,
-               setup_logging: expected_logging)
+            with(bind_mounts: expected_bind_mounts,
+                 limit_cpu: instance.cpu_shares,
+                 byte: instance.disk_limit_in_bytes,
+                 inode: instance.config.instance_disk_inode_limit,
+                 limit_memory: instance.memory_limit_in_bytes,
+                 setup_network: with_network,
+                 setup_logging: expected_logging)
         expect_start.to_not raise_error
         instance.exit_description.should be_empty
       end
@@ -680,6 +680,38 @@ describe Dea::Instance do
           instance.attributes['warden_handle']
         }.from(nil).to('some-handle')
       end
+
+      # context "when stop is called during STARTING" do
+      #   it "transitions to stopping AFTER it starts" do
+      #     instance.class.send(:alias_method, :original_state=, :state=)
+      #     allow(instance).to receive(:state=).with(Dea::Instance::State::STARTING) do |state|
+      #       instance.original_state = state
+      #
+      #       instance.hook('after_stop') { mutex.release }
+      #       Thread.new do
+      #         instance.stop()
+      #       end
+      #       mutex.wait
+      #     end
+      #
+      #     instance.unstub(:promise_exec_hook_script)
+      #
+      #
+      #     instance.should_receive(:state=).with(Dea::Instance::State::STARTING).ordered
+      #     instance.should_receive(:state=).with(Dea::Instance::State::RUNNING).ordered
+      #     instance.should_receive(:state=).with(Dea::Instance::State::STOPPING).ordered
+      #     instance.should_receive(:state=).with(Dea::Instance::State::STOPPED).ordered
+      #
+      #     # original_set_state = instance.method(:state=)
+      #     # allow(instance).to receive(:state=).with(Dea::Instance::State::STARTING) do |state|
+      #     #   original_set_state.call(state)
+      #     #   instance.stop()
+      #     # end
+      #     #
+      #     # expect(instance).to receive(:state=).with(Dea::Instance::State::STARTING)
+      #     expect_start.to_not raise_error
+      #   end
+      # end
     end
 
     describe 'cpu_shares' do
@@ -912,9 +944,9 @@ describe Dea::Instance do
 
         it 'generates a script correctly' do
           expect(Dea::StartupScriptGenerator).to receive(:new).with(
-                                                   'fake_start_command.sh',
-                                                   env.exported_user_environment_variables,
-                                                   env.exported_system_environment_variables
+                                                     'fake_start_command.sh',
+                                                     env.exported_user_environment_variables,
+                                                     env.exported_system_environment_variables
                                                  ).and_return(generator)
 
           instance.promise_start.resolve
@@ -922,8 +954,8 @@ describe Dea::Instance do
 
         it 'applies the correct resource limits to the instance' do
           expect(instance.container).to receive(:resource_limits).with(
-                                          instance.file_descriptor_limit,
-                                          Dea::Instance::NPROC_LIMIT
+                                            instance.file_descriptor_limit,
+                                            Dea::Instance::NPROC_LIMIT
                                         ).and_return('FAKE_RESOURCE_LIMIT_MESSAGE')
 
           instance.promise_start.resolve
@@ -941,16 +973,16 @@ describe Dea::Instance do
       context 'when there is a custom start command set on the instance' do
         subject(:instance) do
           Dea::Instance.new(
-            bootstrap,
-            valid_instance_attributes.merge('start_command' => 'my_custom_start_command.sh')
+              bootstrap,
+              valid_instance_attributes.merge('start_command' => 'my_custom_start_command.sh')
           )
         end
 
         shared_examples 'an instance with a custom start command' do
           before do
             allow(instance.container).to receive(:resource_limits).with(
-                                           instance.file_descriptor_limit,
-                                           Dea::Instance::NPROC_LIMIT
+                                             instance.file_descriptor_limit,
+                                             Dea::Instance::NPROC_LIMIT
                                          ).and_return('FAKE_RESOURCE_LIMIT_MESSAGE')
           end
 
@@ -1032,18 +1064,18 @@ describe Dea::Instance do
     describe 'checking application health' do
       before :each do
         instance.
-          should_receive(:promise_state).
-          with(Dea::Instance::State::BORN, Dea::Instance::State::STARTING).
-          and_return(delivering_promise)
+            should_receive(:promise_state).
+            with(Dea::Instance::State::BORN, Dea::Instance::State::STARTING).
+            and_return(delivering_promise)
       end
 
       it 'transitions from starting to running if healthy' do
         instance.stub(:promise_health_check).and_return(delivering_promise(true))
 
         instance.
-          should_receive(:promise_state).
-          with(Dea::Instance::State::STARTING, Dea::Instance::State::RUNNING).
-          and_return(delivering_promise)
+            should_receive(:promise_state).
+            with(Dea::Instance::State::STARTING, Dea::Instance::State::RUNNING).
+            and_return(delivering_promise)
 
         expect_start.to_not raise_error
         instance.exit_description.should be_empty
@@ -1118,7 +1150,7 @@ describe Dea::Instance do
         instance.unstub(:promise_state)
       end
 
-      passing_states = [Dea::Instance::State::RUNNING, Dea::Instance::State::STARTING, Dea::Instance::State::EVACUATING]
+      passing_states = [Dea::Instance::State::RUNNING, Dea::Instance::State::EVACUATING]
 
       passing_states.each do |state|
         it "passes when #{state.inspect}" do
@@ -1265,7 +1297,7 @@ describe Dea::Instance do
     end
 
     [
-      Dea::Instance::State::RESUMING,
+        Dea::Instance::State::RESUMING,
     ].each do |state|
       it "is triggered link when transitioning from #{state.inspect}" do
         instance.state = state
@@ -1326,8 +1358,8 @@ describe Dea::Instance do
 
     describe 'state transitions' do
       [
-        Dea::Instance::State::STARTING,
-        Dea::Instance::State::RUNNING,
+          Dea::Instance::State::STARTING,
+          Dea::Instance::State::RUNNING,
       ].each do |from|
         to = Dea::Instance::State::CRASHED
 
@@ -1341,8 +1373,8 @@ describe Dea::Instance do
       end
 
       [
-        Dea::Instance::State::STOPPING,
-        Dea::Instance::State::STOPPED,
+          Dea::Instance::State::STOPPING,
+          Dea::Instance::State::STOPPED,
       ].each do |from|
         it "doesn't change when it was #{from.inspect}" do
           instance.state = from
@@ -1499,8 +1531,8 @@ describe Dea::Instance do
       before do
         YAML.stub(:load_file).and_return(a: 1)
         File.stub(:exists?).
-          with(match(/staging_info\.yml/)).
-          and_return(true)
+            with(match(/staging_info\.yml/)).
+            and_return(true)
       end
 
       it 'sends copying out request' do

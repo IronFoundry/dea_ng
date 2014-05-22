@@ -39,7 +39,6 @@ module Dea
       STOPPING = 'STOPPING'
       STOPPED = 'STOPPED'
       CRASHED = 'CRASHED'
-      DELETED = 'DELETED'
       RESUMING = 'RESUMING'
       EVACUATING = 'EVACUATING'
 
@@ -57,8 +56,6 @@ module Dea
             STOPPED
           when 'CRASHED'
             CRASHED
-          when 'DELETED'
-            DELETED
           when 'RESUMING'
             RESUMING
           when 'EVACUATING'
@@ -82,8 +79,6 @@ module Dea
             'STOPPED'
           when Dea::Instance::State::CRASHED
             'CRASHED'
-          when Dea::Instance::State::DELETED
-            'DELETED'
           when Dea::Instance::State::RESUMING
             'RESUMING'
           when Dea::Instance::State::EVACUATING
@@ -581,7 +576,7 @@ module Dea
 
         promise_exec_hook_script('before_stop').resolve
 
-        promise_state([State::RUNNING, State::STARTING, State::EVACUATING], State::STOPPING).resolve
+        promise_state([State::RUNNING, State::EVACUATING], State::STOPPING).resolve
 
         promise_exec_hook_script('after_stop').resolve
 
