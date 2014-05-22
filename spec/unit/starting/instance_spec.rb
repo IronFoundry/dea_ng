@@ -1560,7 +1560,7 @@ describe Dea::Instance do
         context 'on Windows' do
           let(:platform) { :Windows }
           it 'returns container path', windows_only:true do
-            expect(instance.instance_path).to eq('C:/root/dir')
+            expect(instance.instance_path).to match(/[A-Z]{1}:\/root\/dir/)
           end
         end
       end
@@ -1587,7 +1587,7 @@ describe Dea::Instance do
         context 'on Windows' do
           let(:platform) { :Windows }
           it 'returns container path', windows_only: true do
-            expect(instance.instance_path).to eq('C:/root/dir')
+            expect(instance.instance_path).to match(/[A-Z]{1}:\/root\/dir/)
           end
         end
       end
