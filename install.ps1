@@ -17,6 +17,16 @@ function AddFirewallRules($exePath, $ruleName) {
     . netsh.exe advfirewall firewall add rule name="$ruleName"-out-allow dir=out action=allow program="$exePath"
 }
 
+function Append-ToSystemPath($path) {
+    $systemPath = [System.Environment]::GetEnvironmentVariable("PATH", "Machine")
+
+    if ($systemPath -like "*$path*") { return }
+
+    if ($systemPath -notlike '*;') { $systemPath += ';' }
+    $systemPath += $path + ';'
+    [System.Environment]::SetEnvironmentVariable("PATH", $systemPath, "Machine")
+}
+
 function DEAServiceRemove {
     Write-Host "Stopping and removing existing DEA Service"
     . sc.exe stop $DeaServiceName
@@ -164,6 +174,14 @@ function VerifyDependencies {
         Write-Verbose "Found Git at $gitApp"
     }
 
+    $unzipApp = (FindApp 'unzip.exe')
+    if (!$unzipApp) {
+        Write-Error 'Unable to find unzip.exe'
+        $success = $false
+    } else {
+        Write-Verbose "Found unzip at $unzipApp"
+    }
+
     return $success
 }
 
@@ -180,6 +198,7 @@ $StartDirectory = (Get-ScriptDirectory)
 $InstallPath = $StartDirectory
 $RubyBinPath = $null
 $DeaAppPath = Join-Path $InstallPath 'bin'
+$ToolsPath = Join-Path $InstallPath 'tools'
 
 #
 # Main
@@ -188,6 +207,8 @@ if (!(IsAdmin)) {
     Write-Error 'This install script requires admin privileges. Please re-run the script as an Administrator.'
     exit 1
 }
+
+Append-ToSystemPath $ToolsPath
 
 if (!(VerifyDependencies)) {
     Write-Error 'Unable to find one or more dependencies.'
