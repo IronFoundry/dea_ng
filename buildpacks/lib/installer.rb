@@ -1,4 +1,5 @@
 require "open3"
+require "errors"
 require "platform_detect"
 
 module Buildpacks
@@ -27,12 +28,12 @@ module Buildpacks
 
     def compile
       ok = system "#{command('compile')} #{cache_dir}"
-      raise "Buildpack compilation step failed:\n" unless ok
+      raise BuildpackCompileFailed, "Buildpack compilation step failed" unless ok
     end
 
     def release_info
       output, status = Open3.capture2 command("release")
-      raise "Release info failed:\n#{output}" unless status == 0
+      raise BuildpackReleaseFailed, "Release info failed:\n#{output}" unless status == 0
       YAML.load(output)
     end
   end
