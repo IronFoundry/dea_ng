@@ -20,11 +20,15 @@ function AddFirewallRules($exePath, $ruleName) {
 function Append-ToSystemPath($path) {
     $systemPath = [System.Environment]::GetEnvironmentVariable("PATH", "Machine")
 
-    if ($systemPath -like "*$path*") { return }
+    if ($systemPath -like "*$path*") { 
+        $env:PATH = $systemPath
+        return 
+    }
 
     if ($systemPath -notlike '*;') { $systemPath += ';' }
     $systemPath += $path + ';'
     [System.Environment]::SetEnvironmentVariable("PATH", $systemPath, "Machine")
+    $env:PATH = $systemPath
 }
 
 function DEAServiceRemove {
