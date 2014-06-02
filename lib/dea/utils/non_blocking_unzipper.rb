@@ -22,8 +22,9 @@ class WindowsNonBlockingUnzipper < NonBlockingUnzipper
     # EM.system() to run it asynchronously because Windows doesn't support
     # the socketpair() call (and attempting to call socketpair() crashes
     # the application).
-    ok = system("unzip -q #{file} -d #{dest_dir}")
-    unless ok 
+    system("unzip -q #{file} -d #{dest_dir}")
+    # exit codes are documented here: http://info-zip.org/mans/unzip.html
+    unless $?.nil? || $?.exitstatus < 3
       raise "Error unzipping #{file}: #{$?}"
     end
 
