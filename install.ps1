@@ -31,6 +31,10 @@ function Append-ToSystemPath($path) {
     $env:PATH = $systemPath
 }
 
+function CopyDirectory($sourcePath, $targetPath) {
+    Copy-Item -Path $sourcePath -Container -Destination $targetPath -Recurse -Force
+}
+
 function DEAServiceRemove {
     Write-Host "Stopping and removing existing DEA Service"
     . sc.exe stop $DeaServiceName
@@ -202,7 +206,8 @@ $StartDirectory = (Get-ScriptDirectory)
 $InstallPath = $StartDirectory
 $RubyBinPath = $null
 $DeaAppPath = Join-Path $InstallPath 'bin'
-$ToolsPath = Join-Path $InstallPath 'tools'
+$ToolsSourcePath = Join-Path $InstallPath 'tools'
+$ToolsPath = Join-Path $RootDataPath 'tools'
 
 #
 # Main
@@ -212,6 +217,7 @@ if (!(IsAdmin)) {
     exit 1
 }
 
+CopyDirectory $ToolsSourcePath $ToolsPath
 Append-ToSystemPath $ToolsPath
 
 if (!(VerifyDependencies)) {
