@@ -57,7 +57,8 @@ function DEAServiceInstall {
     $deaServiceBinPath = "$rubywBinPath -C $DeaAppPath dea_winsvc.rb $DeaConfigFilePath"
 
     . sc.exe create $DeaServiceName start= disabled binPath= $deaServiceBinPath displayName= "$DeaServiceDescription" depend= "$DirectoryServiceServiceName/$WardenServiceName"
-    
+    . sc.exe description $DeaServiceName "$DeaServiceDescription"
+	
     AddFirewallRules $rubywBinPath 'ruby-193'
 
     Write-Host 'Finished Installing dea_ng Service'
@@ -197,7 +198,7 @@ function VerifyDependencies {
 # Global Settings
 #
 $DeaServiceName = 'IFDeaSvc'
-$DeaServiceDescription = 'IronFoundry DEA'
+$DeaServiceDescription = 'Iron Foundry DEA'
 $WardenServiceName = 'IronFoundry.Warden'
 $DirectoryServiceServiceName = 'IFDeaDirSvc'
 $DeaConfigFilePath = Join-Path $RootDataPath 'dea_ng\config\dea.yml'
