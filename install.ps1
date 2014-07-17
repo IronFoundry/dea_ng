@@ -68,7 +68,8 @@ function DEAServicePrepare {
     Write-Host 'Installing DEA dependent GEMs (this may take a while)'
 
     Write-Host 'Updating GEM packages for dea_ng'
-    . gem update --system --quiet
+    # event machine does not build with the latest ruby gem so fix it at 2.2.2
+    . gem update --system 2.2.2 --quiet
     . gem install bundle --no-document --quiet
 
     Set-Location $DeaAppPath
