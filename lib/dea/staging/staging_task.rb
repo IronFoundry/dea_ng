@@ -39,7 +39,7 @@ module Dea
                     :promise_pack_buildpack_cache_script,
                     :promise_unpack_buildpack_cache_script,
                     :staging_command
-                    
+
     attr_reader :bootstrap, :dir_server, :staging_message, :task_id, :droplet_sha1
 
     def initialize(bootstrap, dir_server, staging_message, buildpacks_in_use, custom_logger=nil)
@@ -119,6 +119,10 @@ module Dea
       task_info['detected_buildpack']
     end
 
+    def detected_start_command
+      task_info['start_command']
+    end
+
     def buildpack_path
       task_info['buildpack_path']
     end
@@ -174,6 +178,7 @@ module Dea
     def trigger_after_setup(error)
       @after_setup_callback.call(error) if @after_setup_callback
     end
+
     private :trigger_after_setup
 
     def after_complete_callback(&blk)
@@ -462,7 +467,7 @@ module Dea
         if File.exists?(workspace.downloaded_buildpack_cache_path)
           logger.info('staging.buildpack-cache.unpack', destination: workspace.warden_cache)
           script = promise_unpack_buildpack_cache_script(workspace.downloaded_buildpack_cache_path,
-                                                         workspace.warden_staging_log, 
+                                                         workspace.warden_staging_log,
                                                          workspace.warden_cache)
           loggregator_emit_result container.run_script(:app, script)
         end
@@ -474,7 +479,7 @@ module Dea
     def promise_copy_out_buildpack_cache
       Promise.new do |p|
         logger.info('staging.buildpack-cache.copying-out',
-                    source: workspace.warden_staged_buildpack_cache, destination: workspace.staged_droplet_path)
+                    source: workspace.warden_staged_buildpack_cache, destination: workspace.staged_droplet_dir)
 
         copy_out_request(workspace.warden_staged_buildpack_cache, workspace.staged_droplet_dir)
 
@@ -501,7 +506,7 @@ module Dea
     end
 
     def snapshot_attributes
-      logger.info('snapshot_attributes', properties: staging_message.properties)
+      logger.debug('snapshot_attributes', properties: staging_message.properties)
       {
         'staging_message' => staging_message.to_hash,
         'warden_container_path' => container.path,
@@ -526,8 +531,8 @@ module Dea
         byte: disk_limit_in_bytes,
         inode: disk_inode_limit,
         limit_memory: memory_limit_in_bytes,
-        setup_network: with_network,
-        setup_logging: {}
+        setup_inbound_network: with_network,
+        egress_rules: staging_message.egress_rules,
       )
       promises = [promise_app_download]
       promises << promise_buildpack_cache_download if staging_message.buildpack_cache_download_uri
@@ -582,7 +587,7 @@ module Dea
       result
     end
   end
-  
+
   class WindowsStagingTask < StagingTask
     def promise_prepare_staging_log_script(warden_staged_dir, warden_staging_log)
       commands = [
@@ -591,7 +596,7 @@ module Dea
       ]
       commands.to_json
     end
-    
+
     def promise_app_dir_script
       commands = [
         { :cmd => 'mkdir', :args => [ '@ROOT@/app' ] },
@@ -599,7 +604,7 @@ module Dea
       ]
       commands.to_json
     end
-    
+
     def promise_unpack_app_script(downloaded_app_package_path, warden_staging_log, warden_unstaged_dir)
      commands = [
           { :cmd => 'ps1', :args => [
@@ -611,18 +616,18 @@ module Dea
       ]
       commands.to_json
     end
-    
+
     def promise_pack_app_script(warden_staged_dir, warden_staged_droplet)
       commands = [
         { :cmd => 'tar', :args => [ 'c', warden_staged_dir, warden_staged_droplet ] },
       ]
       commands.to_json
     end
-    
+
     def build_download_destination_path
       Tempfile.new('app-package-download.tgz', workspace.workspace_dir)
     end
-    
+
     def promise_log_upload_started_script(warden_staged_droplet, warden_staging_log)
       commands = [
         { :cmd => 'ps1', :args => [
@@ -633,7 +638,7 @@ module Dea
       ]
       commands.to_json
     end
-    
+
     def promise_pack_buildpack_cache_script(warden_cache, warden_staged_buildpack_cache)
       commands = [
           { :cmd => 'mkdir', :args => [ warden_cache ] },
@@ -641,7 +646,7 @@ module Dea
       ]
       commands.to_json
     end
-    
+
     def promise_unpack_buildpack_cache_script(downloaded_buildpack_cache_path, warden_staging_log, warden_cache)
       commands = [
           { :cmd => 'ps1', :args => [
@@ -654,7 +659,7 @@ module Dea
       ]
       commands.to_json
     end
-    
+
     def staging_command
 
       staging_config_path = ''
@@ -670,30 +675,30 @@ module Dea
         "PATH" => "$env:PATH;#{staging_config_path}",
         "CONTAINER_ROOT" => "@ROOT@"
         })
-      
+
       args = [ '# DEBUGGER' ]
       args << staging_environment
       args << %Q!#{config['dea_ruby']} '#{run_plugin_path}' '#{workspace.plugin_config_path}' 2>&1 | Out-File -Append -Encoding ASCII -FilePath '#{workspace.warden_staging_log}'!
       args.flatten!
 
       commands = [
-        { :cmd => 'replace-tokens', :args => [ workspace.plugin_config_path ] }, 
+        { :cmd => 'replace-tokens', :args => [ workspace.plugin_config_path ] },
         { :cmd => 'ps1', :args => args }
       ]
 
       commands.to_json
     end
   end
-  
+
   class LinuxStagingTask < StagingTask
     def promise_prepare_staging_log_script(warden_staged_dir, warden_staging_log)
       script = "mkdir -p #{warden_staged_dir}/logs && touch #{warden_staging_log}"
     end
-    
+
     def promise_app_dir_script
       'mkdir -p /app && touch /app/support_heroku_buildpacks && chown -R vcap:vcap /app'
     end
-    
+
     def promise_unpack_app_script(downloaded_app_package_path, warden_staging_log, warden_unstaged_dir)
       return <<-BASH
         set -o pipefail
@@ -702,18 +707,18 @@ module Dea
         unzip -q #{downloaded_app_package_path} -d #{warden_unstaged_dir}
       BASH
     end
-    
+
     def promise_pack_app_script(warden_staged_dir, warden_staged_droplet)
       return <<-BASH
           cd #{warden_staged_dir} &&
           COPYFILE_DISABLE=true tar -czf #{warden_staged_droplet} .
       BASH
     end
-    
+
     def build_download_destination_path
       Tempfile.new('app-package-download.tgz')
     end
-    
+
     def promise_log_upload_started_script(warden_staged_droplet, warden_staging_log)
       return <<-BASH
         set -o pipefail
@@ -721,7 +726,7 @@ module Dea
         echo "-----> Uploading droplet ($droplet_size)" | tee -a #{warden_staging_log}
       BASH
     end
-    
+
     def promise_pack_buildpack_cache_script(warden_cache, warden_staged_buildpack_cache)
       return <<-BASH
           mkdir -p #{warden_cache} &&
@@ -729,7 +734,7 @@ module Dea
           COPYFILE_DISABLE=true tar -czf #{warden_staged_buildpack_cache} .
       BASH
     end
-    
+
     def promise_unpack_buildpack_cache_script(downloaded_buildpack_cache_path, warden_staging_log, warden_cache)
       return <<-BASH
           set -o pipefail
@@ -739,7 +744,7 @@ module Dea
           tar xfz #{downloaded_buildpack_cache_path} -C #{warden_cache}
       BASH
     end
-    
+
     def staging_command
       env = Env.new(staging_message, self)
 

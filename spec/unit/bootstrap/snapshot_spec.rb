@@ -59,6 +59,7 @@ describe Dea::Snapshot do
 
       expected_states = [
         Dea::Instance::State::STARTING,
+        Dea::Instance::State::STOPPING,
         Dea::Instance::State::RUNNING,
         Dea::Instance::State::CRASHED,
       ].sort.uniq
@@ -108,6 +109,7 @@ describe Dea::Snapshot do
       it 'has extra keys for debugging purpose' do
         expected_keys = %w(
           warden_host_ip
+          warden_container_ip
           instance_host_port
           instance_id
         )

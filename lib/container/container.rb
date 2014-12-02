@@ -1,5 +1,6 @@
 require 'em/warden/client'
 require 'vcap/component'
+require 'dea/utils/egress_rules_mapper'
 
 class Container
   class WardenError < StandardError
@@ -17,7 +18,7 @@ class Container
   }
 
   attr_accessor :handle
-  attr_reader :path, :host_ip, :network_ports
+  attr_reader :path, :host_ip, :container_ip, :network_ports
 
   def initialize(client_provider)
     @client_provider = client_provider
@@ -33,6 +34,7 @@ class Container
     raise RuntimeError, 'container path is not available' unless response.container_path
     @path = response.container_path
     @host_ip = response.host_ip
+    @container_ip = response.container_ip
 
     response
   end
@@ -110,7 +112,7 @@ class Container
   end
 
   def create_container(params)
-    [:bind_mounts, :limit_cpu, :byte, :inode, :limit_memory, :setup_network, :setup_logging].each do |param|
+    [:bind_mounts, :limit_cpu, :byte, :inode, :limit_memory, :setup_inbound_network].each do |param|
       raise ArgumentError, "expecting #{param.to_s} parameter to create container" if params[param].nil?
     end
 
@@ -119,8 +121,15 @@ class Container
       limit_cpu(params[:limit_cpu])
       limit_disk(byte: params[:byte], inode: params[:inode])
       limit_memory(params[:limit_memory])
-      setup_network if params[:setup_network]
-      setup_logging(params[:setup_logging]) unless params[:setup_logging].empty?
+      setup_inbound_network if params[:setup_inbound_network]
+      setup_egress_rules(params[:egress_rules])
+    end
+  end
+
+  def setup_egress_rules(rules)
+    logger.debug("setting up egress rules: #{rules}")
+    ::EgressRulesMapper.new(rules, handle).map_to_warden_rules.each do |request|
+      response = call(:app, request)
     end
   end
 
@@ -151,7 +160,7 @@ class Container
     @client_provider.close_all
   end
 
-  def setup_network
+  def setup_inbound_network
     response = call(:app, ::Warden::Protocol::NetInRequest.new(handle: handle))
     network_ports['host_port'] = response.host_port
     network_ports['container_port'] = response.container_port
@@ -170,6 +179,10 @@ class Container
 
   def info
     call(:app_info, ::Warden::Protocol::InfoRequest.new(handle: handle))
+  end
+
+  def list
+    call(:list, ::Warden::Protocol::ListRequest.new)
   end
 
   def link(job_id)

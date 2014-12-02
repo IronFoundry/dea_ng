@@ -88,13 +88,25 @@ describe Dea::Bootstrap do
     end
 
     it "should validate host" do
-      @config = { "index" => 0, "loggregator" => { "router" => "null:5432", "shared_secret" => "secret" } }
+      @config = { "index" => 0, "loggregator" => { "router" => ":5432", "shared_secret" => "secret" } }
 
       expect {
         bootstrap.setup_loggregator
       }.to raise_exception(ArgumentError)
     end
 
+  end
+
+  describe "container lister setup" do
+    before do
+      @config["warden_socket"] = "123"
+    end
+
+    it "should create a new warden container to be used to send .list requests for varz updates" do
+      expect(WardenClientProvider).to receive(:new).with("123")
+      bootstrap.setup_warden_container_lister
+      bootstrap.warden_container_lister.should be_a(Container)
+    end
   end
 
   describe "droplet registry setup" do
@@ -212,6 +224,90 @@ describe Dea::Bootstrap do
     end
   end
 
+  describe "reap orphaned_containers" do
+    let(:warden_containers) { bootstrap.warden_container_lister }
+    let(:list_response) do
+      Warden::Protocol::ListResponse.new(
+        :handles => ["a", "b", "c", "d"]
+      )
+    end
+
+    let(:instance_registry) do
+      instance_registry = []
+      ["a"].each do |warden_handle|
+        instance_registry << double("instance_#{warden_handle}")
+        instance_registry.last.stub(:warden_handle).and_return(warden_handle)
+      end
+      instance_registry
+    end
+
+    let(:staging_task_registry) do
+      staging_task_registry= []
+      ["c"].each do |warden_handle|
+        staging_task_registry << double("staging_task_#{warden_handle}")
+        staging_task_registry.last.stub(:warden_handle).and_return(warden_handle)
+      end
+      staging_task_registry
+    end
+
+    before do
+      bootstrap.setup_warden_container_lister
+      bootstrap.setup_warden_container_lister
+      allow(bootstrap.warden_container_lister).to receive(:list).and_return list_response
+      bootstrap.stub(:instance_registry).and_return(instance_registry)
+      bootstrap.stub(:staging_task_registry).and_return(staging_task_registry)
+    end
+
+    it "should not reap orphaned containers on the first time" do
+      with_event_machine do
+        warden_containers.should_not_receive(:handle=).with('a')
+        warden_containers.should_not_receive(:handle=).with('b')
+        warden_containers.should_not_receive(:handle=).with('c')
+        warden_containers.should_not_receive(:handle=).with('d')
+        warden_containers.should_not_receive(:destroy!)
+        bootstrap.reap_orphaned_containers
+
+        after_defers_finish do
+          done
+        end
+      end
+    end
+
+    it "should reap orphaned containers if they remain orphan for two ticks" do
+      with_event_machine do
+        warden_containers.should_not_receive(:handle=).with('a')
+        warden_containers.should_not_receive(:handle=).with('c')
+        warden_containers.should_not_receive(:handle=).with('d')
+        warden_containers.should_receive(:handle=).with('b')
+        warden_containers.should_receive(:destroy!)
+        bootstrap.reap_orphaned_containers
+        instance_registry << double("instance_d")
+        instance_registry.last.stub(:warden_handle).and_return("d")
+        bootstrap.reap_orphaned_containers
+
+        after_defers_finish do
+          done
+        end
+      end
+    end
+
+    it "is resistant to errors" do
+      warden_containers.stub(:list).and_raise("error happened")
+      logger = double("logger")
+      bootstrap.should_receive(:logger).at_least(:once).and_return(logger)
+      allow(logger).to receive(:debug)
+      logger.should_receive(:error).with("error happened")
+
+      with_event_machine do
+        bootstrap.reap_orphaned_containers
+
+        after_defers_finish do
+          done
+        end
+      end
+    end
+  end
+
   describe "start_component" do
     it "adds stacks to varz" do
       @config["stacks"] = ["Linux"]
@@ -230,12 +326,20 @@ describe Dea::Bootstrap do
   describe "#periodic_varz_update" do
     before do
       bootstrap.setup_resource_manager
+      bootstrap.setup_warden_container_lister
       bootstrap.setup_instance_registry
       bootstrap.config.stub(:minimum_staging_memory_mb => 333)
       bootstrap.config.stub(:minimum_staging_disk_mb => 444)
       bootstrap.resource_manager.stub(number_reservable: 0,
-                                      available_disk_ratio: 0,
-                                      available_memory_ratio: 0)
+        available_disk_ratio: 0,
+        available_memory_ratio: 0)
+      allow(bootstrap.warden_container_lister).to receive(:list).and_return list_response
+    end
+
+    let(:list_response) do
+      Warden::Protocol::ListResponse.new(
+        :handles => []
+      )
     end
 
     describe "can_stage" do
@@ -278,6 +382,27 @@ describe Dea::Bootstrap do
         bootstrap.periodic_varz_update
 
         VCAP::Component.varz[:available_disk_ratio].should == 0.75
+      end
+    end
+
+    describe "warden_containers" do
+      context "when there are no containers" do
+        it "is an empty array" do
+          bootstrap.periodic_varz_update
+          VCAP::Component.varz[:warden_containers].should == []
+        end
+      end
+
+      context "with an active container" do
+        let(:list_response) do
+          Warden::Protocol::ListResponse.new(
+            :handles => ["ahandle", "anotherhandle"])
+        end
+
+        it "is a hash with keys matching the container guid" do
+          bootstrap.periodic_varz_update
+          VCAP::Component.varz[:warden_containers].should == ["ahandle", "anotherhandle"]
+        end
       end
     end
 
@@ -441,7 +566,7 @@ describe Dea::Bootstrap do
 
     context "when recovering from snapshots" do
       let(:instances) do
-        [ Dea::Instance.new(bootstrap, valid_instance_attributes),
+        [Dea::Instance.new(bootstrap, valid_instance_attributes),
           Dea::Instance.new(bootstrap, valid_instance_attributes),
         ]
       end
@@ -500,15 +625,95 @@ describe Dea::Bootstrap do
     end
   end
 
+  describe "handle_dea_update" do
+    let(:app_version) { "version" }
+    let(:new_version) { "new version" }
+
+    let(:instance_data) do
+      {
+        "droplet" => "some-droplet",
+        "uris" => ["not used"],
+        "version" => new_version
+      }
+    end
+
+    let(:instance) { double("instance", :start => nil, :running? => true, :application_version => app_version) }
+    let(:instance_registry) { double("isntance_registry") }
+    let(:snapshot) { double("snapshot") }
+
+    before do
+      bootstrap.setup_instance_manager
+    end
+
+    context "with an existing instance" do
+      context "when the uris change" do
+        let (:new_version) { app_version }
+
+        it "updates the uris, heartbeats and snapshot" do
+          expect(bootstrap).to receive(:instance_registry).at_least(:once).and_return(instance_registry)
+          expect(bootstrap).to receive(:snapshot).and_return(snapshot)
+          instance_updater = double(:instance_updater)
+          expect(Dea::InstanceUriUpdater).to receive(:new).with(instance, instance_data["uris"]).and_return(instance_updater)
+
+          expect(instance_updater).to receive(:update).and_return(true)
+
+          expect(instance).not_to receive(:application_version=).with(new_version)
+
+          expect(instance_registry).to receive(:instances_for_application).and_return({ "myinstanceid" => instance })
+          expect(instance_registry).not_to receive(:change_instance_id).with(instance)
+
+          expect(bootstrap).to receive(:send_heartbeat)
+          expect(snapshot).to receive(:save)
+
+          bootstrap.handle_dea_update(Dea::Nats::Message.new(nil, nil, instance_data, nil))
+        end
+      end
+
+      context "when the version changes" do
+        it "updates the version, heartbeats and snapshot" do
+          expect(bootstrap).to receive(:instance_registry).at_least(:once).and_return(instance_registry)
+          expect(bootstrap).to receive(:snapshot).and_return(snapshot)
+          instance_updater = double(:instance_updater)
+          expect(Dea::InstanceUriUpdater).to receive(:new).with(instance, instance_data["uris"]).and_return(instance_updater)
+
+          expect(instance_updater).to receive(:update).and_return(false)
+
+          expect(instance).to receive(:application_version=).with(new_version)
+
+          expect(instance_registry).to receive(:instances_for_application).and_return({ "myinstanceid" => instance })
+          expect(instance_registry).to receive(:change_instance_id).with(instance)
+
+          expect(bootstrap).to receive(:send_heartbeat)
+          expect(snapshot).to receive(:save)
+
+          bootstrap.handle_dea_update(Dea::Nats::Message.new(nil, nil, instance_data, nil))
+        end
+      end
+    end
+
+    context "when the instance does not exist" do
+      it "does nothing" do
+        expect(bootstrap).to receive(:instance_registry).at_least(:once).and_return(instance_registry)
+        expect(bootstrap).not_to receive(:snapshot)
+
+        expect(instance_registry).to receive(:instances_for_application).and_return({})
+
+        expect(bootstrap).not_to receive(:send_heartbeat)
+
+        bootstrap.handle_dea_update(Dea::Nats::Message.new(nil, nil, instance_data, nil))
+      end
+    end
+  end
+
   describe "start" do
     before do
       bootstrap.stub(:snapshot) { double(:snapshot, :load => nil) }
       bootstrap.stub(:start_component)
       bootstrap.stub(:start_nats)
       bootstrap.stub(:start_directory_server)
-      bootstrap.stub(:greet_router)
       bootstrap.stub(:register_directory_server_v2)
       bootstrap.stub(:directory_server_v2) { double(:directory_server_v2, :start => nil) }
+      bootstrap.stub(:setup_register_routes)
       bootstrap.stub(:setup_varz)
       bootstrap.stub(:start_finish)
     end

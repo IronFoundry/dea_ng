@@ -23,14 +23,24 @@ class SignalHandler
     SIGNALS_OF_INTEREST.each do |signal|
       if PlatformCompat.signal_supported? signal
         kernel_trap.call(signal) do
-          @logger.warn("caught SIG#{signal}")
-          send("trap_#{signal.downcase}")
+          safely do
+            @logger.warn("caught SIG#{signal}")
+            send("trap_#{signal.downcase}")
+          end
         end
       end
     end
   end
 
   private
+
+  def safely
+    Thread.new do
+      EM.schedule do
+        yield
+      end
+    end
+  end
 
   def trap_term
     shutdown

@@ -7,7 +7,7 @@ describe Dea::Nats do
   stub_nats
 
   let(:bootstrap) { double("bootstrap") }
-  let(:config) { {"nats_servers" => ["nats://something:4222"]} }
+  let(:config) { {"nats_servers" => ["nats://user:password@something:4222"]} }
   subject(:nats) { Dea::Nats.new(bootstrap, config) }
 
   describe "subscription setup" do
@@ -16,7 +16,6 @@ describe Dea::Nats do
 
     {
       "healthmanager.start" => :handle_health_manager_start,
-      "router.start"        => :handle_router_start,
       "dea.status"          => :handle_dea_status,
       "dea.UUID.start"      => :handle_dea_directed_start,
       "dea.stop"            => :handle_dea_stop,
@@ -33,6 +32,28 @@ describe Dea::Nats do
 
         nats_mock.receive_message(subject, data)
       end
+    end
+
+    it "subscribes to router.start" do
+      allow(bootstrap).to receive(:handle_router_start)
+      nats_mock.receive_message("router.start", "")
+      expect(bootstrap).to have_received(:handle_router_start)
+    end
+  end
+
+  describe "create_nats_client" do
+    let (:logfile) { Tempfile.open("dea_nats") }
+
+    before do
+      Steno.init(Steno::Config.new({:sinks => [Steno::Sink::IO.new(logfile)]}))
+      nats.create_nats_client
+      logfile.rewind
+    end
+
+    it "does not log nats credentials" do
+      log_record = logfile.readlines[0]
+      expect(log_record).to_not include "nats://user:password@something:4222"
+      expect(log_record).to include "nats://user@something:4222"
     end
   end
 

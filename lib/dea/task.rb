@@ -42,13 +42,20 @@ module Dea
     def promise_stop(kill_flag = false)
       Promise.new do |p|
         begin
-          request = ::Warden::Protocol::StopRequest.new(handle: container.handle, kill: kill_flag)
-          container.call(:stop, request)
+          if container.handle
+            request = ::Warden::Protocol::StopRequest.new(handle: container.handle, kill: kill_flag)
+            container.call(:stop, request)
+          end
 
           p.deliver
         rescue Exception => error
-          logger.error("task.stop.failed", error: error, backtrace: error.backtrace)
-          p.fail(error)
+          handles = container.list.handles
+          if handles != nil && handles.include?(container.handle)
+            logger.error("task.stop.failed", error: error, backtrace: error.backtrace)
+            p.fail(error)
+          else
+            p.deliver # if the container is no longer listed, the stop has succeeded
+          end
         end
       end
     end

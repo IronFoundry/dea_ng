@@ -1,11 +1,13 @@
 package directoryserver
 
 import (
-	"github.com/howeyc/fsnotify"
+	"fmt"
 	"io"
 	"net/http"
 	"os"
 	"time"
+
+	"github.com/howeyc/fsnotify"
 )
 
 type StreamHandler struct {
@@ -20,6 +22,7 @@ func (handler *StreamHandler) ServeHTTP(writer http.ResponseWriter, r *http.Requ
 	watcher, err := fsnotify.NewWatcher()
 	if err != nil {
 		writer.WriteHeader(500)
+		writer.Write([]byte(fmt.Sprintf("Failed to tail file: %s", err.Error())))
 		return
 	}
 
@@ -37,6 +40,7 @@ func (handler *StreamHandler) ServeHTTP(writer http.ResponseWriter, r *http.Requ
 	err = watcher.Watch(handler.File.Name())
 	if err != nil {
 		writer.WriteHeader(500)
+		writer.Write([]byte(fmt.Sprintf("Failed to tail file: %s", err.Error())))
 		return
 	}
 

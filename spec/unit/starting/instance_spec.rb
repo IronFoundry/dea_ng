@@ -29,11 +29,11 @@ describe Dea::Instance do
   end
 
   let(:attributes) { valid_instance_attributes }
-  
+
   subject(:instance) do
     Dea::Instance.new(bootstrap, attributes)
   end
-  
+
   describe 'default attributes' do
     it 'defaults exit status to -1' do
       expect(instance.exit_status).to eq(-1)
@@ -135,6 +135,29 @@ describe Dea::Instance do
       end
     end
 
+    describe 'egress network rules' do
+      context 'when egress network rules are missing' do
+        let(:start_message_data) { {} }
+
+        its(:egress_network_rules) { should eq([]) }
+      end
+
+      context 'when egress network rules are present' do
+        let (:start_message_data) do
+          {
+            'egress_network_rules' => [
+              { 'protocol' => 'tcp' },
+              { 'port_range' => '80-443' }
+            ]
+          }
+        end
+
+        its(:egress_network_rules) do
+          should match_array([{ 'protocol' => 'tcp' },{ 'port_range' => '80-443' }])
+        end
+      end
+    end
+
     describe 'other attributes' do
       let(:start_message_data) do
         {
@@ -202,7 +225,7 @@ describe Dea::Instance do
         attributes.delete('droplet')
         attributes
       end
-      
+
       it 'should raise' do
         expect { instance.validate }.to raise_error
       end
@@ -282,7 +305,7 @@ describe Dea::Instance do
 
   describe 'predicate methods' do
     let(:attributes) { {} }
-    
+
     it 'should be present for each state' do
       instance.state = 'invalid'
 
@@ -331,6 +354,20 @@ describe Dea::Instance do
         end
       end
     end
+
+    describe 'when started' do
+      [
+          Dea::Instance::State::EVACUATING,
+      ].each do |state|
+        it "does not stop when the instance moves to the #{state.inspect} state" do
+          instance.stat_collector.should_not_receive(:stop)
+          instance.state = Dea::Instance::State::RUNNING
+
+          instance.state = state
+        end
+      end
+    end
+
   end
 
   describe 'attributes_and_stats from stat collector' do
@@ -478,19 +515,13 @@ describe Dea::Instance do
         result.should be_true
       end
 
-      it 'fails when the port is not open' do
+      it 'fails when the port is not open and logs an error message' do
         result = execute_health_check do
           deferrable.fail
         end
 
         result.should be_false
-      end
-
-      it 'logs a message to loggregator when the port is not open' do
-        execute_health_check do
-          deferrable.fail
-        end
-        expect(@emitter.messages[application_id][0]).to eql('Instance (index 2) failed to start accepting connections')
+        expect(@emitter.error_messages[application_id][0]).to eql('Instance (index 2) failed to start accepting connections')
       end
     end
 
@@ -655,8 +686,8 @@ describe Dea::Instance do
                  byte: instance.disk_limit_in_bytes,
                  inode: instance.config.instance_disk_inode_limit,
                  limit_memory: instance.memory_limit_in_bytes,
-                 setup_network: with_network,
-                 setup_logging: expected_logging)
+                 setup_inbound_network: with_network,
+                 egress_rules: instance.egress_network_rules)
         expect_start.to_not raise_error
         instance.exit_description.should be_empty
       end
@@ -1150,7 +1181,8 @@ describe Dea::Instance do
         instance.unstub(:promise_state)
       end
 
-      passing_states = [Dea::Instance::State::RUNNING, Dea::Instance::State::EVACUATING]
+      passing_states = [Dea::Instance::State::BORN, Dea::Instance::State::STOPPING, Dea::Instance::State::RUNNING,
+        Dea::Instance::State::EVACUATING, Dea::Instance::State::STARTING, Dea::Instance::State::STOPPED]
 
       passing_states.each do |state|
         it "passes when #{state.inspect}" do
@@ -1185,6 +1217,7 @@ describe Dea::Instance do
         before do
           Dea::Env.stub(:new).with(instance).and_return(env)
           bootstrap.stub(:config).and_return('hooks' => {hook => fixture("hooks/#{hook}")})
+          instance.state = Dea::Instance::State::RUNNING
         end
 
         it "executes the #{hook} script file" do
@@ -1268,6 +1301,19 @@ describe Dea::Instance do
         result = instance.promise_link.resolve
         expect(result).to eq(response)
       end
+    end
+  end
+
+  context "when resuming an instance in stopping state" do
+    before do
+      instance.state = Dea::Instance::State::RESUMING
+      instance.setup
+    end
+
+    it "immediately links, and then stops the instance" do
+      expect(instance).to receive(:link).and_call_original
+      expect(instance).to receive(:stop)
+      instance.state = Dea::Instance::State::STOPPING
     end
   end
 
@@ -1475,6 +1521,7 @@ describe Dea::Instance do
 
     [Dea::Instance::State::RESUMING,
      Dea::Instance::State::RUNNING,
+     Dea::Instance::State::STARTING,
     ].each do |state|
       it "is triggered link when transitioning from #{state.inspect}" do
         instance.state = state

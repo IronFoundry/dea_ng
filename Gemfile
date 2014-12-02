@@ -2,6 +2,7 @@ source 'https://rubygems.org'
 
 gem 'eventmachine'
 gem 'em-http-request'
+gem 'em-synchrony'
 
 gem 'em-warden-client', git: 'https://github.com/cloudfoundry/warden.git'
 gem 'warden-client', git: 'https://github.com/cloudfoundry/warden.git'
@@ -14,8 +15,8 @@ gem 'thin'
 gem 'yajl-ruby', require: %w[yajl yajl/json_gem]
 gem 'grape', git: 'https://github.com/intridea/grape.git'
 
-gem 'vcap_common', git: 'https://github.com/cloudfoundry/vcap-common.git'
-gem 'steno', '~> 1.2.4', git: 'https://github.com/cloudfoundry/steno.git'
+gem 'vcap_common'
+gem 'steno', '~> 1.2.4'
 
 gem 'uuidtools'
 gem 'nokogiri', '~> 1.6.2'
@@ -30,6 +31,7 @@ if RUBY_PLATFORM=~ /mswin|mingw|cygwin/
 end
 
 group :test do
+  gem 'codeclimate-test-reporter', require: false
   gem 'ci_reporter'
   gem 'debugger'
   gem 'foreman'

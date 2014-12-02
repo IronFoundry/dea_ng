@@ -59,11 +59,8 @@ module Dea
     START_SCRIPT = strip_heredoc(<<-BASH).freeze
       DROPLET_BASE_DIR=$PWD
       cd app
-      (%s) > >(tee $DROPLET_BASE_DIR/logs/stdout.log) 2> >(tee $DROPLET_BASE_DIR/logs/stderr.log >&2) &
-      STARTED=$!
-      echo "$STARTED" >> $DROPLET_BASE_DIR/run.pid
-
-      wait $STARTED
+      echo $$ >> $DROPLET_BASE_DIR/run.pid
+      exec bash -c %s
     BASH
 
     def generate
@@ -72,8 +69,7 @@ module Dea
       script << @system_envs
       script << EXPORT_BUILDPACK_ENV_VARIABLES_SCRIPT
       script << @user_envs
-      script << "env > logs/env.log"
-      script << START_SCRIPT % @start_command
+      script << START_SCRIPT % Shellwords.shellescape(@start_command)
       script.join("\n")
     end
   end

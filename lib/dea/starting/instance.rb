@@ -22,13 +22,13 @@ module Dea
     include EventEmitter
 
     include_platform_compat
-    abstract_method :promise_setup_environment_script, 
+    abstract_method :promise_setup_environment_script,
                     :promise_extract_droplet_script,
                     :promise_start_default_script,
                     :build_promise_exec_hook_script,
                     :promise_copy_out_src_dir,
                     :container_relative_path
-                    
+
     STAT_COLLECTION_INTERVAL_SECS = 10
     NPROC_LIMIT = 512
 
@@ -92,6 +92,18 @@ module Dea
     class Transition < Struct.new(:from, :to)
       def initialize(*args)
         super(*args.map(&:to_s).map(&:downcase))
+      end
+    end
+
+    class Entering < Struct.new(:to)
+      def initialize(to)
+        super(to.to_s.downcase)
+      end
+    end
+
+    class Exiting < Struct.new(:from)
+      def initialize(from)
+        super(from.to_s.downcase)
       end
     end
 
@@ -288,6 +300,7 @@ module Dea
     def setup
       setup_stat_collector
       setup_link
+      setup_resume_stopping
       setup_crash_handler
     end
 
@@ -345,7 +358,10 @@ module Dea
     end
 
     def state=(state)
-      transition = Transition.new(attributes['state'], state)
+      oldState = attributes['state']
+      exiting = Exiting.new(oldState)
+      transition = Transition.new(oldState, state)
+      entering = Entering.new(state)
 
       attributes['state'] = state
       attributes['state_timestamp'] = Time.now.to_f
@@ -353,7 +369,9 @@ module Dea
       state_time = "state_#{state.to_s.downcase}_timestamp"
       attributes[state_time] = Time.now.to_f
 
+      emit(exiting)
       emit(transition)
+      emit(entering)
     end
 
     def state_timestamp
@@ -380,6 +398,10 @@ module Dea
 
     def to_s
       'Instance(id=%s, idx=%s, app_id=%s)' % [instance_id.slice(0, 4), instance_index, application_id]
+    end
+
+    def egress_network_rules
+      attributes['egress_network_rules'] || []
     end
 
     def promise_state(from, to = nil)
@@ -531,8 +553,8 @@ module Dea
           byte: disk_limit_in_bytes,
           inode: config.instance_disk_inode_limit,
           limit_memory: memory_limit_in_bytes,
-          setup_network: with_network,
-          setup_logging: logging_info)
+          setup_inbound_network: with_network,
+          egress_rules: egress_network_rules)
 
         attributes['warden_handle'] = container.handle
 
@@ -574,15 +596,19 @@ module Dea
       p = Promise.new do
         logger.info('droplet.stopping')
 
-        promise_exec_hook_script('before_stop').resolve
+        case self.state
+          when State::BORN
+            self.state = State::STOPPED
+          when State::STOPPED
+          else
+            promise_state([State::STARTING, State::STOPPING, State::RUNNING, State::EVACUATING], State::STOPPING).resolve
 
-        promise_state([State::RUNNING, State::EVACUATING], State::STOPPING).resolve
+            promise_exec_hook_script('before_stop').resolve
+            promise_stop.resolve
+            promise_exec_hook_script('after_stop').resolve
 
-        promise_exec_hook_script('after_stop').resolve
-
-        promise_stop.resolve
-
-        promise_state(State::STOPPING, State::STOPPED).resolve
+            promise_state([State::STOPPING, State::STOPPED], State::STOPPED).resolve
+        end
 
         p.deliver
       end
@@ -606,17 +632,7 @@ module Dea
 
     def setup_crash_handler
       # Resuming to crashed state
-      on(Transition.new(:resuming, :crashed)) do
-        crash_handler
-      end
-
-      # On crash
-      on(Transition.new(:starting, :crashed)) do
-        crash_handler
-      end
-
-      # On crash
-      on(Transition.new(:running, :crashed)) do
+      on(Entering.new(:crashed)) do
         crash_handler
       end
     end
@@ -645,11 +661,7 @@ module Dea
     end
 
     def setup_stat_collector
-      on(Transition.new(:resuming, :running)) do
-        stat_collector.start
-      end
-
-      on(Transition.new(:starting, :running)) do
+      on(Entering.new(:running)) do
         stat_collector.start
       end
 
@@ -666,6 +678,14 @@ module Dea
       # Resuming to running state
       on(Transition.new(:resuming, :running)) do
         link
+      end
+    end
+
+    def setup_resume_stopping
+      on(Transition.new(:resuming, :stopping)) do
+        link do
+          stop
+        end
       end
     end
 
@@ -733,7 +753,7 @@ module Dea
           hc.callback { p.deliver(true) }
 
           hc.errback do
-            Dea::Loggregator.emit(application_id, "Instance (index #{instance_index}) failed to start accepting connections")
+            Dea::Loggregator.emit_error(application_id, "Instance (index #{instance_index}) failed to start accepting connections")
             p.deliver(false)
           end
 
@@ -865,6 +885,7 @@ module Dea
         'warden_job_id' => attributes['warden_job_id'],
         'warden_container_path' => container.path,
         'warden_host_ip' => container.host_ip,
+        'warden_container_ip' => container.container_ip,
         'instance_host_port' => container.network_ports['host_port'],
         'instance_container_port' => container.network_ports['container_port'],
 
@@ -924,7 +945,7 @@ module Dea
       @logger ||= self.class.logger.tag(tags)
     end
   end
-  
+
   class WindowsInstance < Instance
     def promise_setup_environment_script
       commands = [
@@ -941,7 +962,7 @@ module Dea
     end
 
     def promise_start_default_script(env)
-      commands = [ 
+      commands = [
         { :cmd => 'ps1', :args => [ './startup.ps1' ] }
       ]
       commands.to_json
@@ -954,7 +975,7 @@ module Dea
       script << File.read(script_path)
       script << "exit"
 
-      commands = [ 
+      commands = [
         { :cmd => 'ps1', :args => script }
       ]
       commands.to_json
@@ -963,13 +984,13 @@ module Dea
     def promise_copy_out_src_dir
       "@ROOT@/"
     end
-    
+
     def container_relative_path(root, *parts)
       container_relative_path = File.join(root, *parts)
       return container_relative_path;
     end
   end
-  
+
   class LinuxInstance < Instance
     def promise_setup_environment_script
       'cd / && mkdir -p home/vcap/app && chown vcap:vcap home/vcap/app && ln -s home/vcap/app /app'
@@ -978,7 +999,7 @@ module Dea
     def promise_extract_droplet_script(droplet_path)
       "cd /home/vcap/ && tar zxf #{droplet_path}"
     end
-    
+
     def promise_start_default_script(env)
       env.exported_environment_variables + "./startup;\nexit"
     end

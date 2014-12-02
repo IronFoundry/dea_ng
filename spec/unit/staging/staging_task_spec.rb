@@ -11,7 +11,7 @@ require 'dea/utils/platform_compat'
 describe Dea::StagingTask do
 
   platform_specific(:platform, default_platform: :Linux)
-  
+
   let(:loggregator_emitter) { FakeEmitter.new }
 
   let(:memory_limit_mb) { 256 }
@@ -112,7 +112,7 @@ describe Dea::StagingTask do
       end
 
       context 'when env variables need to be escaped' do
-        before { attributes['start_message']['env'] = ['PATH=x y z', "FOO=z'y\"d", 'BAR=', 'BAZ=foo=baz'] }
+        before { attributes['properties']['environment'] = ['PATH=x y z', "FOO=z'y\"d", 'BAR=', 'BAZ=foo=baz'] }
 
         it 'copes with spaces' do
           staging_task.container.should_receive(:spawn) do |cmd|
@@ -286,6 +286,21 @@ YAML
     end
   end
 
+  describe '#detected_start_command' do
+    before do
+      contents = <<YAML
+---
+start_command: bacofoil
+YAML
+      staging_info = File.join(workspace_dir, 'staging_info.yml')
+      File.open(staging_info, 'w') { |f| f.write(contents) }
+    end
+
+    it 'returns the detected start command' do
+      staging_task.detected_start_command.should eq('bacofoil')
+    end
+  end
+
   describe '#buildpack_path' do
     before do
       contents = <<YAML
@@ -386,7 +401,7 @@ YAML
     it 'hmacs url' do
       url.should match(/hmac=.*/)
     end
-    
+
     context 'on Windows' do
       let(:platform) { :Windows }
       it 'includes path to staging task output on windows' do
@@ -643,8 +658,8 @@ YAML
              byte: staging_task.disk_limit_in_bytes,
              inode: staging_task.disk_inode_limit,
              limit_memory: staging_task.memory_limit_in_bytes,
-             setup_network: with_network,
-             setup_logging: {}).ordered
+             setup_inbound_network: with_network,
+             egress_rules: staging_task.staging_message.egress_rules).ordered
       %w(
         promise_app_download
         promise_prepare_staging_log

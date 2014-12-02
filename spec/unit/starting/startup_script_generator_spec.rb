@@ -6,7 +6,7 @@ describe Dea::StartupScriptGenerator do
   platform_specific(:platform, default_platform: :Linux)
 
   let(:used_buildpack) { '' }
-  let(:start_command) { 'go_nuts' }
+  let(:start_command) { "go_nuts 'man' ; echo 'wooooohooo'" }
 
   let(:generator) { Dea::StartupScriptGenerator.new(start_command, user_envs, system_envs) }
 
@@ -49,16 +49,11 @@ describe Dea::StartupScriptGenerator do
         it "sets user variables after buildpack variables" do
           script.should match /\.profile\.d.*usrval1/m
         end
-
-        it "print env to a log file after user envs" do
-          script.should include "env > logs/env.log"
-          script.should match /usrval1.*env\.log/m
-        end
       end
 
       describe "starting app" do
-        it "includes the start command in the starting script" do
-          script.should include Dea::LinuxStartupScriptGenerator::START_SCRIPT % start_command
+        it "includes the escaped start command in the starting script" do
+          expect(script).to include(Dea::LinuxStartupScriptGenerator::START_SCRIPT % Shellwords.shellescape(start_command))
         end
       end
     end

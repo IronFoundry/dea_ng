@@ -1,9 +1,13 @@
 require "dea/promise"
 require "dea/utils/download"
 require "dea/utils/non_blocking_unzipper"
+require "em-synchrony/thread"
 
 class AdminBuildpackDownloader
   attr_reader :logger
+
+  DOWNLOAD_MUTEX = EventMachine::Synchrony::Thread::Mutex.new
+  MAX_DOWNLOAD_ATTEMPTS = 3
 
   def initialize(buildpacks, destination_directory, custom_logger=nil)
     @buildpacks = buildpacks
@@ -15,15 +19,26 @@ class AdminBuildpackDownloader
     logger.debug("admin-buildpacks.download", buildpacks: @buildpacks)
     return unless @buildpacks
 
-    download_promises = []
-    @buildpacks.each do |buildpack|
-      dest_dir = File.join(@destination_directory, buildpack.fetch(:key))
-      unless File.exists?(dest_dir)
-        download_promises << download_one_buildpack(buildpack, dest_dir)
+    FileUtils.mkdir_p(@destination_directory)
+    DOWNLOAD_MUTEX.synchronize do
+      @buildpacks.each do |buildpack|
+        attempts = 0
+        success = false
+
+        dest_dir = File.join(@destination_directory, buildpack.fetch(:key))
+        unless File.exists?(dest_dir)
+          until success
+            begin
+              attempts += 1
+              download_one_buildpack(buildpack, dest_dir).resolve
+              success = true
+            rescue Download::DownloadError => e
+              raise e if attempts >= MAX_DOWNLOAD_ATTEMPTS
+            end
+          end
+        end
       end
     end
-
-    Dea::Promise.run_in_parallel(*download_promises)
   end
 
   private
@@ -34,11 +49,15 @@ class AdminBuildpackDownloader
 
       Download.new(buildpack.fetch(:url), tmpfile, nil, logger).download! do |err|
         if err
-          p.deliver
+          p.fail err
         else
-          NonBlockingUnzipper.new.unzip_to_folder(tmpfile.path, dest_dir) do
+          NonBlockingUnzipper.new.unzip_to_folder(tmpfile.path, dest_dir) do |output, status|
             tmpfile.unlink
-            p.deliver
+            if status == 0
+              p.deliver
+            else
+              p.fail output
+            end
           end
         end
       end
