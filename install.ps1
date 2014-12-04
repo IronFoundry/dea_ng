@@ -198,10 +198,10 @@ function VerifyDependencies {
 #
 # Global Settings
 #
-$DeaServiceName = 'IFDeaSvc'
+$DeaServiceName = 'IronFoundry.Dea'
 $DeaServiceDescription = 'Iron Foundry DEA'
 $WardenServiceName = 'IronFoundry.Warden'
-$DirectoryServiceServiceName = 'IFDeaDirSvc'
+$DirectoryServiceServiceName = 'IronFoundry.Dea.Directory'
 $DeaConfigFilePath = Join-Path $RootDataPath 'dea_ng\config\dea.yml'
 
 $StartDirectory = (Get-ScriptDirectory)

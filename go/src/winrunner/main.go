@@ -32,7 +32,7 @@ func usagewithconfigpath(errmsg string) {
 }
 
 func main() {
-	const svcName = "IFDeaDirSvc"
+	const svcName = "IronFoundry.Dea.Directory"
 
 	isIntSess, err := svc.IsAnInteractiveSession()
 	if err != nil {
