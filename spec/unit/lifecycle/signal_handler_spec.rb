@@ -87,7 +87,7 @@ describe SignalHandler do
       end
     end
 
-    describe "#trap_usr1", unix_only:true do 
+    describe "#trap_usr1", unix_only:true do
       it "sends the shutdown message" do
         @signal_handlers["USR1"].call
         shutdown_message = @published_messages["dea.shutdown"][0]
