@@ -484,7 +484,7 @@ module Dea
       end
     end
 
-    private
+    
 
     def logger
       @logger ||= self.class.logger
