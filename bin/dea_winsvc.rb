@@ -44,7 +44,7 @@ class DeaDaemon < Daemon
         @bootstrap.start
       }
     rescue => e
-      @bootstrap.logger.error "DEA Windows Server failed", error: e
+      @bootstrap.logger.error "DEA Windows Server failed", error: e, backtrace: e.backtrace
       exit!
     end
 
