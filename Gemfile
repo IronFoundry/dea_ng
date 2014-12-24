@@ -8,7 +8,7 @@ gem 'em-warden-client', git: 'https://github.com/cloudfoundry/warden.git'
 gem 'warden-client', git: 'https://github.com/cloudfoundry/warden.git'
 gem 'warden-protocol', git: 'https://github.com/IronFoundry/warden.git'
 
-gem 'nats', '>= 0.5.0.beta.12', '< 0.6', require: 'nats/client'
+gem 'nats', '>= 0.5.0.beta.16', '< 0.6', require: 'nats/client'
 gem 'rack', require: %w[rack/utils rack/mime]
 gem 'rake'
 gem 'thin'
