@@ -41,6 +41,12 @@ class LinuxNonBlockingUnzipper < NonBlockingUnzipper
 end
 
 class WindowsNonBlockingUnzipper < NonBlockingUnzipper
+  class UnzipError < RuntimeError
+    def initialize(file, dest_dir, status_code)
+      super("Failed to unzip #{file} to #{dest_dir}. Status Code; #{status_code}")
+    end
+  end
+
   def unzip_to_folder(file, dest_dir, mode=0755)
     # While we are using the same 'unzip' utility on Windows, we can't use
     # EM.system() to run it asynchronously because Windows doesn't support
@@ -48,10 +54,13 @@ class WindowsNonBlockingUnzipper < NonBlockingUnzipper
     # the application).
     system("unzip -q #{file} -d #{dest_dir}")
     # exit codes are documented here: http://info-zip.org/mans/unzip.html
-    unless $?.nil? || $?.exitstatus < 3
-      raise "Error unzipping #{file}: #{$?}"
+    if $?.nil? || $?.exitstatus < 3
+      output, status = [ "Successfully unzipped #{file} into #{dest_dir}", 0]
+    else
+      exit_code = $?.exitstatus
+      output, status = [ UnzipError.new(file, dest_dir, exit_code), exit_code ]
     end
 
-    yield
+    yield output, status
   end
 end
