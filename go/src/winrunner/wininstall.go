@@ -68,23 +68,45 @@ func installService(name, desc, configPath string) error {
 }
 
 func removeService(name string) error {
+	err := deleteService(name);
+
+	// Attempt to delete the event source regardless of the success
+	// of deleting the service.  Otherwise, the re-install will fail
+	// complaining about the existence of the key.
+	esErr := deleteServiceEventSource(name); 
+	if err == nil {
+		err = esErr
+	}
+
+	return err;
+}
+
+func deleteService(name string) error {
 	m, err := mgr.Connect()
 	if err != nil {
 		return err
 	}
 	defer m.Disconnect()
+
 	s, err := m.OpenService(name)
 	if err != nil {
 		return fmt.Errorf("service %s is not installed", name)
 	}
 	defer s.Close()
+
 	err = s.Delete()
 	if err != nil {
 		return err
 	}
-	err = eventlog.Remove(name)
+
+	return nil;
+}
+
+func deleteServiceEventSource(name string) error {
+	err := eventlog.Remove(name)
 	if err != nil {
 		return fmt.Errorf("RemoveEventLogSource() failed: %s", err)
 	}
 	return nil
-}
+} 
+
