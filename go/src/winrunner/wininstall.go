@@ -68,38 +68,46 @@ func installService(name, desc, configPath string) error {
 }
 
 func removeService(name string) error {
-	err := deleteService(name);
+	serviceMissing, err := deleteService(name);
 
-	// Attempt to delete the event source regardless of the success
-	// of deleting the service.  Otherwise, the re-install will fail
-	// complaining about the existence of the key.
-	esErr := deleteServiceEventSource(name); 
-	if err == nil {
-		err = esErr
+	// Attempt to delete the event source if there
+	// was no error deleting the service or the service
+	// was missing.  If we don't delete the event source
+	// registry key, the install will fail when it tries
+	// to setup the registry key.
+	if err == nil || serviceMissing {
+		esErr := deleteServiceEventSource(name); 
+
+		if err == nil {
+			err = esErr
+		}
 	}
 
 	return err;
 }
 
-func deleteService(name string) error {
+func deleteService(name string) (serviceMissing bool, err error) {
+	serviceMissing = false;
+
 	m, err := mgr.Connect()
 	if err != nil {
-		return err
+		return serviceMissing, err;
 	}
 	defer m.Disconnect()
 
 	s, err := m.OpenService(name)
 	if err != nil {
-		return fmt.Errorf("service %s is not installed", name)
+		serviceMissing = true;
+		return serviceMissing, fmt.Errorf("service %s is not installed", name)
 	}
 	defer s.Close()
 
 	err = s.Delete()
 	if err != nil {
-		return err
+		return serviceMissing, err
 	}
 
-	return nil;
+	return serviceMissing, nil;
 }
 
 func deleteServiceEventSource(name string) error {
