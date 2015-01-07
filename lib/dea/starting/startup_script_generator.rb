@@ -11,10 +11,9 @@ module Dea
       string.gsub(/^[ \t]{#{indent}}/, '')
     end
     
-    def initialize(start_command, user_envs, system_envs)
+    def initialize(start_command, script_env)
       @start_command = start_command
-      @user_envs = user_envs
-      @system_envs = system_envs
+      @env = script_env
     end
   end
   
@@ -30,6 +29,9 @@ module Dea
     BASH
 
     def generate
+      user_envs = @env.exported_user_environment_variables
+      system_envs = @env.exported_system_environment_variables
+
       script = []
       script << @system_envs
       script << @user_envs
@@ -64,11 +66,14 @@ module Dea
     BASH
 
     def generate
+      user_envs = @env.exported_user_environment_variables
+      system_envs = @env.exported_system_environment_variables
+
       script = []
       script << "umask 077"
-      script << @system_envs
+      script << system_envs
       script << EXPORT_BUILDPACK_ENV_VARIABLES_SCRIPT
-      script << @user_envs
+      script << user_envs
       script << START_SCRIPT % Shellwords.shellescape(@start_command)
       script.join("\n")
     end

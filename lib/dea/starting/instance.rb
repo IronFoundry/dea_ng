@@ -452,8 +452,7 @@ module Dea
           start_script =
             Dea::StartupScriptGenerator.new(
               command,
-              env.exported_user_environment_variables,
-              env.exported_system_environment_variables
+              env
             ).generate
         else
           start_script = promise_start_default_script(env)

@@ -8,7 +8,8 @@ describe Dea::StartupScriptGenerator do
   let(:used_buildpack) { '' }
   let(:start_command) { "go_nuts 'man' ; echo 'wooooohooo'" }
 
-  let(:generator) { Dea::StartupScriptGenerator.new(start_command, user_envs, system_envs) }
+  let(:env_inst) { double(Dea::Env, :exported_user_environment_variables => user_envs, :exported_system_environment_variables => system_envs) }
+  let(:generator) { Dea::StartupScriptGenerator.new(start_command, env_inst) }
 
   describe "#generate" do
     subject(:script) { generator.generate }
