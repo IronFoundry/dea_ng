@@ -61,15 +61,22 @@ describe Dea::StartupScriptGenerator do
 
     context "on Windows" do
       let(:platform) { :Windows }
-      let(:user_envs) { %Q{$env:usr1='usrval1';\n$env:usr2='usrval2';\nRemove-Item $env:unset_var;\n} }
-      let(:system_envs) { %Q{$env:usr1='sys_user_val1';\n$env:sys1='sysval1';\n} }
+      let(:env_inst) { double(Dea::Env, :user_environment_variables => user_envs, :system_environment_variables => system_envs) }
+      let(:user_envs) { [['usr1', 'usrval1'], ['usr2', 'usrval2']] }
+      let(:system_envs) { [['usr1', 'sys_user_val1'], ['sys1', 'sysval1']] }
 
       describe "starting app" do
         it "includes the start command in the starting script" do
-          start_script = Dea::WindowsStartupScriptGenerator::WIN_START_SCRIPT % start_command
-          script.should include start_script.to_json
+          script.should include start_command
         end
       end
+
+      describe "environment variables" do 
+        it "overrides system variables with user variables" do
+          script.should include "\"usr1\":\"usrval1\""
+        end
+      end
+
     end
   end
 end

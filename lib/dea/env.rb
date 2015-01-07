@@ -40,8 +40,6 @@ module Dea
       to_export(system_environment_variables + user_environment_variables)
     end
 
-    private
-
     def user_environment_variables
       translate_env(message.env)
     end
@@ -56,6 +54,8 @@ module Dea
 
       env + strategy_env.system_environment_variables
     end
+
+    private
 
     def vcap_services
       @vcap_services ||=
