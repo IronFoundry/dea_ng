@@ -1,4 +1,5 @@
 # coding: UTF-8
+require 'dea/utils/platform_compat'
 
 module Dea
   module Starting
@@ -11,9 +12,11 @@ module Dea
       end
 
       def system_environment_variables
+        container_root = PlatformCompat.windows? ? "@ROOT@" : "$PWD"
+
         [
-          ["HOME", "$PWD/app"],
-          ["TMPDIR", "$PWD/tmp"],
+          ["HOME", "#{container_root}/app"],
+          ["TMPDIR", "#{container_root}/tmp"],
           ["VCAP_APP_HOST", "0.0.0.0"],
           ["VCAP_APP_PORT", @instance.instance_container_port],
           ["PORT", instance.instance_container_port]

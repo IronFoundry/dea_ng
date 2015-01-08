@@ -28,9 +28,11 @@ module Dea
 
       # Create a windows command with all the arguments
       exe = "@ROOT@\\app\\#{@start_command}"
-   
-      exe_args = [exe]
-      win_command = WindowsCommand.new('exe', exe_args, env_hash)
+
+      # The exe command args is an array where the first item is the
+      # exe that will be invoked and the rest are the arguments.
+      exe_command_args = [exe]
+      win_command = WindowsCommand.new('exe', exe_command_args, env_hash)
 
       # Convert to json
       command = [
