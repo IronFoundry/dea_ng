@@ -27,12 +27,13 @@ module Dea
       env_hash = system_env_hash.merge(user_env_hash)
 
       # Create a windows command with all the arguments
-      exe = "@ROOT@\\app\\#{@start_command}"
+      working_dir = "@ROOT@\\app"
+      exe = "#{working_dir}\\#{@start_command}"
 
       # The exe command args is an array where the first item is the
       # exe that will be invoked and the rest are the arguments.
-      exe_command_args = [exe]
-      win_command = WindowsCommand.new('exe', exe_command_args, env_hash)
+      exe_command_args = [exe, "-p #{env_hash['PORT']}"]
+      win_command = WindowsCommand.new('exe', exe_command_args, env_hash, working_dir)
 
       # Convert to json
       command = [
