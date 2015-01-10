@@ -14,13 +14,22 @@ module Dea
       def system_environment_variables
         container_root = PlatformCompat.windows? ? "@ROOT@" : "$PWD"
 
-        [
+        sys_env = [
           ["HOME", "#{container_root}/app"],
           ["TMPDIR", "#{container_root}/tmp"],
           ["VCAP_APP_HOST", "0.0.0.0"],
           ["VCAP_APP_PORT", @instance.instance_container_port],
           ["PORT", instance.instance_container_port]
         ]
+
+        if PlatformCompat.windows?
+          sys_env += [
+            ["TEMP", "#{container_root}/tmp"],
+            ["TMP",  "#{container_root}/tmp"]
+          ]
+        end
+
+        sys_env
       end
 
       def vcap_application
