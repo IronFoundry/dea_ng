@@ -114,13 +114,16 @@ function DirectoryServiceInstall {
 function EventMachinePrepare {
     Write-Host 'Build and install custom event machine'
 
-    Set-Location $InstallPath
-    git clone https://github.com/IronFoundry/eventmachine.git eventmachine
+    if (! (test-path $InstallPath\eventmachine))
+    {
+        Set-Location $InstallPath
+        git clone https://github.com/IronFoundry/eventmachine.git eventmachine
+    }
 
     Set-Location "$InstallPath\eventmachine"
-    . gem uninstall eventmachine --force --version 1.0.3 --quiet
+    . gem uninstall eventmachine --force --version 1.0.4 --quiet
     . gem build eventmachine.gemspec --quiet
-    . gem install eventmachine-1.0.3.gem  --quiet
+    . gem install eventmachine-1.0.4.gem  --quiet
 }
 
 function FindApp($appName) {
