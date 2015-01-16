@@ -659,6 +659,7 @@ YAML
              inode: staging_task.disk_inode_limit,
              limit_memory: staging_task.memory_limit_in_bytes,
              setup_inbound_network: with_network,
+             setup_logging: {},
              egress_rules: staging_task.staging_message.egress_rules).ordered
       %w(
         promise_app_download
