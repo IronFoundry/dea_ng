@@ -399,6 +399,14 @@ describe Container do
 
   describe '#create_container' do
     let(:bind_mounts) { double('mounts') }
+    let(:setup_logging) { {
+        :application_id => 'application_id',
+        :instance_index => 'instance_index',
+        :loggregator_router => 'loggregator',
+        :loggregator_secret => 'loggregator',
+        :drain_uris => 'services'
+    } }
+
     let(:params) { {
       bind_mounts: bind_mounts,
       limit_cpu: 300,
@@ -406,6 +414,7 @@ describe Container do
       inode: 100,
       limit_memory: 200,
       setup_inbound_network: true,
+      setup_logging: setup_logging,
       egress_rules: [{ 'protocol' => 'tcp', 'port' => '80', 'destination' => '198.41.191.47/1' }]
     } }
 
@@ -427,6 +436,7 @@ describe Container do
       container.should_receive(:limit_disk).with(byte: params[:byte], inode: params[:inode])
       container.should_receive(:limit_memory).with(params[:limit_memory])
       container.should_receive(:setup_inbound_network)
+      container.should_receive(:setup_logging) if PlatformCompat.windows?
       container.should_receive(:setup_egress_rules).with(params[:egress_rules])
 
       container.create_container(params)
@@ -439,9 +449,24 @@ describe Container do
       container.stub(:limit_cpu)
       container.stub(:limit_disk)
       container.stub(:limit_memory)
+      container.stub(:setup_logging)
       container.stub(:setup_egress_rules)
 
       container.should_not_receive(:setup_inbound_network)
+      container.create_container(params)
+    end
+
+    it 'does not setup logging if not required' do
+      params[:setup_logging] = { }
+
+      container.stub(:new_container_with_bind_mounts)
+      container.stub(:limit_cpu)
+      container.stub(:limit_disk)
+      container.stub(:limit_memory)
+      container.stub(:setup_inbound_network)
+      container.stub(:setup_egress_rules)
+
+      container.should_not_receive(:setup_logging)
       container.create_container(params)
     end
   end

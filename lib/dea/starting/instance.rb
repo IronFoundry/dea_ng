@@ -553,6 +553,7 @@ module Dea
           inode: config.instance_disk_inode_limit,
           limit_memory: memory_limit_in_bytes,
           setup_inbound_network: with_network,
+          setup_logging: logging_info,
           egress_rules: egress_network_rules)
 
         attributes['warden_handle'] = container.handle

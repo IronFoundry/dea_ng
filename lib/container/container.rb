@@ -1,6 +1,7 @@
 require 'em/warden/client'
 require 'vcap/component'
 require 'dea/utils/egress_rules_mapper'
+require 'dea/utils/platform_compat'
 
 class Container
   class WardenError < StandardError
@@ -112,12 +113,18 @@ class Container
   end
 
   def create_container(params)
-    [:bind_mounts, :limit_cpu, :byte, :inode, :limit_memory, :setup_inbound_network].each do |param|
+    [:bind_mounts, :limit_cpu, :byte, :inode, :limit_memory, :setup_inbound_network, :setup_logging].each do |param|
       raise ArgumentError, "expecting #{param.to_s} parameter to create container" if params[param].nil?
     end
 
     with_em do
       new_container_with_bind_mounts(params[:bind_mounts])
+
+      if PlatformCompat.windows?
+        # The windows warden requires a message with the information on
+        # how to set up logging for the container
+        setup_logging(params[:setup_logging]) unless params[:setup_logging].empty?
+      end
       limit_cpu(params[:limit_cpu])
       limit_disk(byte: params[:byte], inode: params[:inode])
       limit_memory(params[:limit_memory])
