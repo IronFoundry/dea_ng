@@ -111,21 +111,6 @@ function DirectoryServiceInstall {
     Write-Host 'Finished Installing Directory Service'
 }
 
-function EventMachinePrepare {
-    Write-Host 'Build and install custom event machine'
-
-    if (! (test-path $InstallPath\eventmachine))
-    {
-        Set-Location $InstallPath
-        git clone https://github.com/IronFoundry/eventmachine.git eventmachine
-    }
-
-    Set-Location "$InstallPath\eventmachine"
-    . gem uninstall eventmachine --force --version 1.0.4 --quiet
-    . gem build eventmachine.gemspec --quiet
-    . gem install eventmachine-1.0.4.gem  --quiet
-}
-
 function FindApp($appName) {
     # Search path for app
     foreach ($path  in $env:PATH.Split(";") ) {
@@ -232,7 +217,6 @@ if (!(VerifyDependencies)) {
 
 DEAServiceRemove
 DEAServicePrepare
-EventMachinePrepare
 DirectoryServiceInstall
 DEAServiceInstall
 DEAServiceConfigureStart
